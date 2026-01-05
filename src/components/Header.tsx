@@ -1,6 +1,8 @@
-import rabbitAvatar from "@/assets/rabbit-avatar.png";
+import { useCustomization } from "@/context/CustomizationContext";
 
 export const Header = () => {
+  const { getAvatarUrl } = useCustomization();
+
   return (
     <header className="bg-card border-b border-border shadow-soft">
       <div className="max-w-4xl mx-auto px-4 py-4">
@@ -8,8 +10,8 @@ export const Header = () => {
           <div className="relative">
             <div className="w-12 h-12 rounded-xl overflow-hidden shadow-glow border-2 border-primary/20">
               <img 
-                src={rabbitAvatar} 
-                alt="StudyGPT Rabbit" 
+                src={getAvatarUrl()} 
+                alt="StudyGPT Avatar" 
                 className="w-full h-full object-cover"
               />
             </div>

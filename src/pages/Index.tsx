@@ -4,6 +4,7 @@ import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
+import { CustomizationPanel } from "@/components/CustomizationPanel";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -137,7 +138,8 @@ const Index = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="relative flex flex-col h-screen bg-background">
+      <CustomizationPanel />
       <Header />
       
       {/* Main chat area */}
