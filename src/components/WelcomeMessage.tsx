@@ -1,7 +1,9 @@
 import { BookOpen, Brain, Target } from "lucide-react";
-import rabbitAvatar from "@/assets/rabbit-avatar.png";
+import { useCustomization } from "@/context/CustomizationContext";
 
 export const WelcomeMessage = () => {
+  const { getAvatarUrl } = useCustomization();
+  
   const features = [
     { icon: BookOpen, text: "Get homework help step-by-step" },
     { icon: Brain, text: "Understand difficult topics easily" },
@@ -13,8 +15,8 @@ export const WelcomeMessage = () => {
       <div className="text-center max-w-md">
         <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-glow border-2 border-primary/20 animate-bounce-soft">
           <img 
-            src={rabbitAvatar} 
-            alt="StudyGPT Rabbit" 
+            src={getAvatarUrl()} 
+            alt="StudyGPT Avatar" 
             className="w-full h-full object-cover"
           />
         </div>

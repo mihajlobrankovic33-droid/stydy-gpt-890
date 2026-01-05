@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import rabbitAvatar from "@/assets/rabbit-avatar.png";
+import { useCustomization } from "@/context/CustomizationContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,6 +11,7 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = ({ message }: ChatMessageProps) => {
+  const { getAvatarUrl } = useCustomization();
   const isUser = message.role === "user";
 
   return (
@@ -28,7 +29,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       ) : (
         <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 shadow-glow border-2 border-primary/20">
           <img 
-            src={rabbitAvatar} 
+            src={getAvatarUrl()} 
             alt="StudyGPT" 
             className="w-full h-full object-cover"
           />
@@ -53,11 +54,13 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
 };
 
 export const TypingIndicator = () => {
+  const { getAvatarUrl } = useCustomization();
+
   return (
     <div className="flex gap-3 animate-message-in">
       <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 shadow-glow border-2 border-primary/20">
         <img 
-          src={rabbitAvatar} 
+          src={getAvatarUrl()} 
           alt="StudyGPT" 
           className="w-full h-full object-cover"
         />
