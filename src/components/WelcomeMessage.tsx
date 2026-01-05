@@ -1,0 +1,49 @@
+import { Sparkles, BookOpen, Brain, Target } from "lucide-react";
+
+export const WelcomeMessage = () => {
+  const features = [
+    { icon: BookOpen, text: "Get homework help step-by-step" },
+    { icon: Brain, text: "Understand difficult topics easily" },
+    { icon: Target, text: "Practice with quizzes" },
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-4 animate-fade-in">
+      <div className="text-center max-w-md">
+        <div className="w-20 h-20 rounded-2xl gradient-hero mx-auto mb-6 flex items-center justify-center shadow-glow animate-bounce-soft">
+          <Sparkles className="w-10 h-10 text-primary-foreground" />
+        </div>
+        
+        <h2 className="text-2xl font-bold text-foreground mb-3">
+          Hey there! 👋
+        </h2>
+        
+        <p className="text-muted-foreground mb-8 leading-relaxed">
+          I'm StudyGPT, your personal AI tutor. I'm here to help you learn, 
+          understand tricky topics, and ace your studies. What would you like to learn today?
+        </p>
+
+        <div className="space-y-3">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-soft"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <feature.icon className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-sm font-medium text-foreground">
+                {feature.text}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-8">
+          Try typing a question or use the quick action buttons below ✨
+        </p>
+      </div>
+    </div>
+  );
+};
