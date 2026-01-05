@@ -1,4 +1,4 @@
-import { GraduationCap, Sparkles } from "lucide-react";
+import rabbitAvatar from "@/assets/rabbit-avatar.png";
 
 export const Header = () => {
   return (
@@ -6,11 +6,12 @@ export const Header = () => {
       <div className="max-w-4xl mx-auto px-4 py-4">
         <div className="flex items-center justify-center gap-3">
           <div className="relative">
-            <div className="w-11 h-11 rounded-xl gradient-hero flex items-center justify-center shadow-glow">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent rounded-full flex items-center justify-center shadow-sm">
-              <Sparkles className="w-2.5 h-2.5 text-accent-foreground" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-glow border-2 border-primary/20">
+              <img 
+                src={rabbitAvatar} 
+                alt="StudyGPT Rabbit" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
           <div>
