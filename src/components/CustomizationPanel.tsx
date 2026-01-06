@@ -1,29 +1,14 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings, Upload, Palette, RotateCcw, Check, ImageIcon } from "lucide-react";
-import { useCustomization } from "@/context/CustomizationContext";
+import { Settings, Upload, Palette, RotateCcw, Check, Sparkles } from "lucide-react";
+import { useCustomization, avatarThemes } from "@/context/CustomizationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const backgroundPresets = [
-  { name: "Cream", color: "40 33% 98%", gradient: null },
-  { name: "Sky Blue", color: "200 80% 96%", gradient: null },
-  { name: "Mint", color: "160 50% 95%", gradient: null },
-  { name: "Lavender", color: "270 50% 96%", gradient: null },
-  { name: "Peach", color: "20 70% 95%", gradient: null },
-  { name: "Ocean", color: "200 60% 94%", gradient: "linear-gradient(180deg, hsl(200 80% 96%) 0%, hsl(180 60% 90%) 100%)" },
-  { name: "Sunset", color: "30 80% 95%", gradient: "linear-gradient(180deg, hsl(40 70% 96%) 0%, hsl(15 60% 92%) 100%)" },
-  { name: "Forest", color: "140 40% 94%", gradient: "linear-gradient(180deg, hsl(120 30% 95%) 0%, hsl(160 40% 90%) 100%)" },
-];
-
-const avatarPresets = [
-  { name: "Default Rabbit", url: null },
-];
-
 export const CustomizationPanel = () => {
-  const { settings, updateBackground, updateAvatar, resetToDefault, getAvatarUrl } = useCustomization();
+  const { settings, currentTheme, selectTheme, updateCustomAvatar, resetToDefault, getAvatarUrl } = useCustomization();
   const [isUploading, setIsUploading] = useState(false);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +40,7 @@ export const CustomizationPanel = () => {
 
     try {
       const fileName = `avatar-${Date.now()}-${Math.random().toString(36).substring(7)}.${file.name.split(".").pop()}`;
-      
+
       const { data, error } = await supabase.storage
         .from("custom-avatars")
         .upload(fileName, file);
@@ -66,7 +51,7 @@ export const CustomizationPanel = () => {
         .from("custom-avatars")
         .getPublicUrl(data.path);
 
-      updateAvatar(urlData.publicUrl);
+      updateCustomAvatar(urlData.publicUrl);
       toast({
         title: "Avatar updated! 🎉",
         description: "Your custom avatar is now set",
@@ -83,105 +68,148 @@ export const CustomizationPanel = () => {
     }
   };
 
+  const handleThemeSelect = (themeId: string) => {
+    selectTheme(themeId);
+    toast({
+      title: `${avatarThemes.find((t) => t.id === themeId)?.emoji} Theme Changed!`,
+      description: `Switched to ${avatarThemes.find((t) => t.id === themeId)?.name}`,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
         >
           <Settings className="h-5 w-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Palette className="w-5 h-5 text-primary" />
-            Customize StudyGPT
+            <Sparkles className="w-5 h-5 text-primary" />
+            Choose Your Study Buddy
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Avatar Section */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              StudyGPT Avatar
-            </h3>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary/20 shadow-medium">
-                <img
-                  src={getAvatarUrl()}
-                  alt="Current avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {isUploading ? "Uploading..." : "Upload Custom Avatar"}
-                </Button>
-                {settings.customAvatarUrl && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => updateAvatar(null)}
-                    className="w-full text-muted-foreground"
-                  >
-                    Use Default Rabbit
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Background Section */}
+          {/* Avatar Theme Selection */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Palette className="w-4 h-4" />
-              Background Theme
+              Pick a Character & Theme
             </h3>
-            <div className="grid grid-cols-4 gap-2">
-              {backgroundPresets.map((preset) => (
+            <div className="grid grid-cols-3 gap-3">
+              {avatarThemes.map((theme) => (
                 <button
-                  key={preset.name}
-                  onClick={() => updateBackground(preset.color, preset.gradient)}
+                  key={theme.id}
+                  onClick={() => handleThemeSelect(theme.id)}
                   className={cn(
-                    "relative w-full aspect-square rounded-lg border-2 transition-all hover:scale-105",
-                    settings.backgroundColor === preset.color
-                      ? "border-primary shadow-glow"
-                      : "border-border hover:border-primary/50"
+                    "relative p-3 rounded-xl border-2 transition-all hover:scale-105 flex flex-col items-center gap-2",
+                    settings.selectedThemeId === theme.id
+                      ? "border-primary shadow-glow bg-primary/5"
+                      : "border-border hover:border-primary/50 bg-card"
                   )}
                   style={{
-                    background: preset.gradient || `hsl(${preset.color})`,
+                    boxShadow:
+                      settings.selectedThemeId === theme.id
+                        ? `0 0 20px hsl(${theme.theme.primary} / 0.3)`
+                        : undefined,
                   }}
-                  title={preset.name}
                 >
-                  {settings.backgroundColor === preset.color && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-primary" />
+                  <div
+                    className="w-14 h-14 rounded-xl overflow-hidden border-2 shadow-md"
+                    style={{
+                      borderColor: `hsl(${theme.theme.primary} / 0.3)`,
+                    }}
+                  >
+                    <img
+                      src={theme.avatar}
+                      alt={theme.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-foreground text-center leading-tight">
+                    {theme.name}
+                  </span>
+                  <div className="flex gap-1">
+                    <div
+                      className="w-3 h-3 rounded-full border border-white/50"
+                      style={{ backgroundColor: `hsl(${theme.theme.primary})` }}
+                      title="Primary color"
+                    />
+                    <div
+                      className="w-3 h-3 rounded-full border border-white/50"
+                      style={{ backgroundColor: `hsl(${theme.theme.accent})` }}
+                      title="Accent color"
+                    />
+                    <div
+                      className="w-3 h-3 rounded-full border border-gray-300"
+                      style={{ backgroundColor: `hsl(${theme.theme.background})` }}
+                      title="Background color"
+                    />
+                  </div>
+                  {settings.selectedThemeId === theme.id && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
                     </div>
                   )}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center">
-              {backgroundPresets.find((p) => p.color === settings.backgroundColor)?.name || "Custom"}
-            </p>
+          </div>
+
+          {/* Current Avatar Preview */}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border border-border">
+            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary/20 shadow-medium">
+              <img
+                src={getAvatarUrl()}
+                alt="Current avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                {currentTheme.emoji} {currentTheme.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {settings.customAvatarUrl ? "Using custom avatar" : "Theme avatar active"}
+              </p>
+            </div>
+          </div>
+
+          {/* Custom Avatar Upload */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {isUploading ? "Uploading..." : "Upload Custom Avatar"}
+            </Button>
+            {settings.customAvatarUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => updateCustomAvatar(null)}
+                className="w-full text-muted-foreground"
+              >
+                Use Theme Avatar Instead
+              </Button>
+            )}
           </div>
 
           {/* Reset Button */}

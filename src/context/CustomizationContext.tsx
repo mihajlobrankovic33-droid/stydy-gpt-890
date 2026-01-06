@@ -1,23 +1,117 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import rabbitAvatar from "@/assets/rabbit-avatar.png";
+import owlAvatar from "@/assets/owl-avatar.png";
+import foxAvatar from "@/assets/fox-avatar.png";
+import pandaAvatar from "@/assets/panda-avatar.png";
+import catAvatar from "@/assets/cat-avatar.png";
+import penguinAvatar from "@/assets/penguin-avatar.png";
+
+export interface ThemeColors {
+  primary: string;
+  accent: string;
+  background: string;
+  cardBackground: string;
+}
+
+export interface AvatarTheme {
+  id: string;
+  name: string;
+  avatar: string;
+  emoji: string;
+  theme: ThemeColors;
+}
+
+export const avatarThemes: AvatarTheme[] = [
+  {
+    id: "rabbit",
+    name: "Bunny Scholar",
+    avatar: rabbitAvatar,
+    emoji: "🐰",
+    theme: {
+      primary: "174 58% 42%",
+      accent: "15 85% 60%",
+      background: "40 33% 98%",
+      cardBackground: "0 0% 100%",
+    },
+  },
+  {
+    id: "owl",
+    name: "Wise Owl",
+    avatar: owlAvatar,
+    emoji: "🦉",
+    theme: {
+      primary: "270 60% 55%",
+      accent: "280 70% 65%",
+      background: "270 40% 97%",
+      cardBackground: "270 30% 99%",
+    },
+  },
+  {
+    id: "fox",
+    name: "Clever Fox",
+    avatar: foxAvatar,
+    emoji: "🦊",
+    theme: {
+      primary: "25 90% 50%",
+      accent: "35 95% 55%",
+      background: "35 60% 96%",
+      cardBackground: "30 50% 99%",
+    },
+  },
+  {
+    id: "panda",
+    name: "Zen Panda",
+    avatar: pandaAvatar,
+    emoji: "🐼",
+    theme: {
+      primary: "160 50% 45%",
+      accent: "140 40% 50%",
+      background: "150 40% 96%",
+      cardBackground: "150 30% 99%",
+    },
+  },
+  {
+    id: "cat",
+    name: "Curious Cat",
+    avatar: catAvatar,
+    emoji: "🐱",
+    theme: {
+      primary: "340 65% 55%",
+      accent: "350 70% 60%",
+      background: "350 50% 97%",
+      cardBackground: "345 40% 99%",
+    },
+  },
+  {
+    id: "penguin",
+    name: "Cool Penguin",
+    avatar: penguinAvatar,
+    emoji: "🐧",
+    theme: {
+      primary: "200 80% 50%",
+      accent: "210 85% 55%",
+      background: "200 60% 96%",
+      cardBackground: "200 40% 99%",
+    },
+  },
+];
 
 export interface CustomizationSettings {
-  backgroundColor: string;
-  backgroundGradient: string | null;
+  selectedThemeId: string;
   customAvatarUrl: string | null;
 }
 
 interface CustomizationContextType {
   settings: CustomizationSettings;
-  updateBackground: (color: string, gradient?: string | null) => void;
-  updateAvatar: (url: string | null) => void;
+  currentTheme: AvatarTheme;
+  selectTheme: (themeId: string) => void;
+  updateCustomAvatar: (url: string | null) => void;
   resetToDefault: () => void;
   getAvatarUrl: () => string;
 }
 
 const defaultSettings: CustomizationSettings = {
-  backgroundColor: "40 33% 98%",
-  backgroundGradient: null,
+  selectedThemeId: "rabbit",
   customAvatarUrl: null,
 };
 
@@ -33,32 +127,36 @@ export const useCustomization = () => {
 
 export const CustomizationProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<CustomizationSettings>(() => {
-    const saved = localStorage.getItem("studygpt-customization");
+    const saved = localStorage.getItem("studygpt-customization-v2");
     return saved ? JSON.parse(saved) : defaultSettings;
   });
 
-  useEffect(() => {
-    localStorage.setItem("studygpt-customization", JSON.stringify(settings));
-    
-    // Apply background
-    document.documentElement.style.setProperty("--background", settings.backgroundColor);
-    
-    if (settings.backgroundGradient) {
-      document.body.style.background = settings.backgroundGradient;
-    } else {
-      document.body.style.background = "";
-    }
-  }, [settings]);
+  const currentTheme = avatarThemes.find((t) => t.id === settings.selectedThemeId) || avatarThemes[0];
 
-  const updateBackground = (color: string, gradient?: string | null) => {
+  useEffect(() => {
+    localStorage.setItem("studygpt-customization-v2", JSON.stringify(settings));
+
+    // Apply theme colors
+    const root = document.documentElement;
+    root.style.setProperty("--primary", currentTheme.theme.primary);
+    root.style.setProperty("--accent", currentTheme.theme.accent);
+    root.style.setProperty("--background", currentTheme.theme.background);
+    root.style.setProperty("--card", currentTheme.theme.cardBackground);
+    root.style.setProperty("--ring", currentTheme.theme.primary);
+    
+    // Reset body background
+    document.body.style.background = "";
+  }, [settings, currentTheme]);
+
+  const selectTheme = (themeId: string) => {
     setSettings((prev) => ({
       ...prev,
-      backgroundColor: color,
-      backgroundGradient: gradient ?? null,
+      selectedThemeId: themeId,
+      customAvatarUrl: null, // Reset custom avatar when selecting a theme
     }));
   };
 
-  const updateAvatar = (url: string | null) => {
+  const updateCustomAvatar = (url: string | null) => {
     setSettings((prev) => ({
       ...prev,
       customAvatarUrl: url,
@@ -70,12 +168,19 @@ export const CustomizationProvider = ({ children }: { children: ReactNode }) => 
   };
 
   const getAvatarUrl = () => {
-    return settings.customAvatarUrl || rabbitAvatar;
+    return settings.customAvatarUrl || currentTheme.avatar;
   };
 
   return (
     <CustomizationContext.Provider
-      value={{ settings, updateBackground, updateAvatar, resetToDefault, getAvatarUrl }}
+      value={{
+        settings,
+        currentTheme,
+        selectTheme,
+        updateCustomAvatar,
+        resetToDefault,
+        getAvatarUrl,
+      }}
     >
       {children}
     </CustomizationContext.Provider>
