@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-chat`;
@@ -107,8 +108,8 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (content: string) => {
-    const userMessage: Message = { role: "user", content };
+  const handleSend = async (content: string, imageUrl?: string) => {
+    const userMessage: Message = { role: "user", content, imageUrl };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     await streamChat(newMessages, currentAction || undefined);
@@ -118,7 +119,9 @@ const Index = () => {
     setCurrentAction(action);
     toast({
       title: getActionTitle(action),
-      description: "Tell me what topic you'd like help with!",
+      description: action === "exam" 
+        ? "I'll give you direct answers! Send a question or photo." 
+        : "Tell me what topic you'd like help with!",
     });
   };
 
@@ -132,6 +135,8 @@ const Index = () => {
         return "❓ Quiz Mode";
       case "homework":
         return "📚 Homework Help";
+      case "exam":
+        return "🎓 Exam Mode";
       default:
         return "";
     }
@@ -170,8 +175,12 @@ const Index = () => {
           {/* Action indicator */}
           {currentAction && (
             <div className="flex items-center justify-center">
-              <div className="bg-primary/10 text-primary text-sm font-medium px-4 py-2 rounded-full animate-fade-in">
-                {getActionTitle(currentAction)} - Type your topic below
+              <div className={`text-sm font-medium px-4 py-2 rounded-full animate-fade-in ${
+                currentAction === "exam" 
+                  ? "bg-red-100 text-red-700" 
+                  : "bg-primary/10 text-primary"
+              }`}>
+                {getActionTitle(currentAction)} - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}
               </div>
             </div>
           )}

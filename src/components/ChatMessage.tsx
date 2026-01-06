@@ -4,6 +4,7 @@ import { useCustomization } from "@/context/CustomizationContext";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 }
 
 interface ChatMessageProps {
@@ -45,6 +46,16 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
             : "bg-card text-card-foreground rounded-bl-md border border-border"
         )}
       >
+        {/* Show image if present */}
+        {message.imageUrl && (
+          <div className="mb-2">
+            <img
+              src={message.imageUrl}
+              alt="Shared"
+              className="max-w-full max-h-48 rounded-lg"
+            />
+          </div>
+        )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
           {message.content}
         </p>

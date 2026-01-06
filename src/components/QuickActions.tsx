@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Lightbulb, FileText, HelpCircle, BookOpen } from "lucide-react";
+import { Lightbulb, FileText, HelpCircle, BookOpen, GraduationCap } from "lucide-react";
 
-export type ActionType = "explain" | "summary" | "quiz" | "homework";
+export type ActionType = "explain" | "summary" | "quiz" | "homework" | "exam";
 
 interface QuickActionsProps {
   onAction: (action: ActionType, prompt: string) => void;
@@ -36,6 +36,13 @@ const actions = [
     icon: BookOpen,
     prompt: "I need help with my homework. Please guide me through this problem:",
     color: "bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-200",
+  },
+  {
+    type: "exam" as ActionType,
+    label: "Exam Mode",
+    icon: GraduationCap,
+    prompt: "I'm preparing for an exam. Please give me direct, clear answers:",
+    color: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200",
   },
 ];
 
