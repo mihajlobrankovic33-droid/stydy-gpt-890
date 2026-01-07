@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Volume2, VolumeX } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { useCustomization } from "@/context/CustomizationContext";
 
 interface SpeakButtonProps {
   text: string;
 }
 
 export const SpeakButton = ({ text }: SpeakButtonProps) => {
-  const { speak, stop, isSpeaking, isSupported } = useTextToSpeech();
+  const { currentTheme } = useCustomization();
+  const { speak, stop, isSpeaking, isSupported } = useTextToSpeech(currentTheme.voicePreference);
 
   if (!isSupported) return null;
 

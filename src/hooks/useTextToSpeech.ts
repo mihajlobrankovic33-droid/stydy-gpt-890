@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 
-export const useTextToSpeech = () => {
+export const useTextToSpeech = (voicePreference?: string[]) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -24,8 +24,8 @@ export const useTextToSpeech = () => {
   }, []);
 
   const getPreferredVoice = useCallback(() => {
-    // Prefer natural-sounding English voices
-    const preferredNames = [
+    // Use provided voice preference or fallback to defaults
+    const preferredNames = voicePreference || [
       "Google UK English Female",
       "Google US English",
       "Samantha",
@@ -43,7 +43,7 @@ export const useTextToSpeech = () => {
     // Fallback to first English voice
     const englishVoice = voices.find((v) => v.lang.startsWith("en"));
     return englishVoice || voices[0];
-  }, [voices]);
+  }, [voices, voicePreference]);
 
   const speak = useCallback(
     (text: string) => {

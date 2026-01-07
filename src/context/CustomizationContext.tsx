@@ -20,6 +20,7 @@ export interface AvatarTheme {
   appTagline: string;
   avatar: string;
   emoji: string;
+  voicePreference: string[];
   theme: ThemeColors;
 }
 
@@ -31,6 +32,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Your Hopping Study Buddy 🥕",
     avatar: rabbitAvatar,
     emoji: "🐰",
+    voicePreference: ["Google UK English Female", "Samantha", "Karen", "Microsoft Zira"],
     theme: {
       primary: "174 58% 42%",
       accent: "15 85% 60%",
@@ -45,6 +47,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Wisdom at Night 🌙",
     avatar: owlAvatar,
     emoji: "🦉",
+    voicePreference: ["Google UK English Male", "Daniel", "Microsoft David", "Alex"],
     theme: {
       primary: "270 60% 55%",
       accent: "280 70% 65%",
@@ -59,6 +62,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Quick & Clever Learning 🍂",
     avatar: foxAvatar,
     emoji: "🦊",
+    voicePreference: ["Google US English", "Fred", "Microsoft Mark", "Tom"],
     theme: {
       primary: "25 90% 50%",
       accent: "35 95% 55%",
@@ -73,6 +77,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Calm & Focused Study 🎋",
     avatar: pandaAvatar,
     emoji: "🐼",
+    voicePreference: ["Samantha", "Google UK English Female", "Karen", "Moira"],
     theme: {
       primary: "160 50% 45%",
       accent: "140 40% 50%",
@@ -87,6 +92,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Curiosity Leads to Knowledge 🧶",
     avatar: catAvatar,
     emoji: "🐱",
+    voicePreference: ["Victoria", "Google UK English Female", "Fiona", "Tessa"],
     theme: {
       primary: "340 65% 55%",
       accent: "350 70% 60%",
@@ -101,6 +107,7 @@ export const avatarThemes: AvatarTheme[] = [
     appTagline: "Cool & Collected Learning 🧊",
     avatar: penguinAvatar,
     emoji: "🐧",
+    voicePreference: ["Google US English", "Alex", "Microsoft David", "Daniel"],
     theme: {
       primary: "200 80% 50%",
       accent: "210 85% 55%",
