@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useCustomization } from "@/context/CustomizationContext";
+import { SpeakButton } from "./SpeakButton";
 
 interface Message {
   role: "user" | "assistant";
@@ -59,6 +60,12 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
           {message.content}
         </p>
+        {/* Speak button for assistant messages */}
+        {!isUser && message.content && (
+          <div className="flex justify-end mt-2 -mb-1 -mr-1">
+            <SpeakButton text={message.content} />
+          </div>
+        )}
       </div>
     </div>
   );
