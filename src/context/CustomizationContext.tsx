@@ -16,6 +16,8 @@ export interface ThemeColors {
 export interface AvatarTheme {
   id: string;
   name: string;
+  appName: string;
+  appTagline: string;
   avatar: string;
   emoji: string;
   theme: ThemeColors;
@@ -25,6 +27,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "rabbit",
     name: "Bunny Scholar",
+    appName: "StudyBunny",
+    appTagline: "Your Hopping Study Buddy 🥕",
     avatar: rabbitAvatar,
     emoji: "🐰",
     theme: {
@@ -37,6 +41,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "owl",
     name: "Wise Owl",
+    appName: "WiseOwl",
+    appTagline: "Wisdom at Night 🌙",
     avatar: owlAvatar,
     emoji: "🦉",
     theme: {
@@ -49,6 +55,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "fox",
     name: "Clever Fox",
+    appName: "FoxBrain",
+    appTagline: "Quick & Clever Learning 🍂",
     avatar: foxAvatar,
     emoji: "🦊",
     theme: {
@@ -61,6 +69,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "panda",
     name: "Zen Panda",
+    appName: "PandaLearn",
+    appTagline: "Calm & Focused Study 🎋",
     avatar: pandaAvatar,
     emoji: "🐼",
     theme: {
@@ -73,6 +83,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "cat",
     name: "Curious Cat",
+    appName: "CatScholar",
+    appTagline: "Curiosity Leads to Knowledge 🧶",
     avatar: catAvatar,
     emoji: "🐱",
     theme: {
@@ -85,6 +97,8 @@ export const avatarThemes: AvatarTheme[] = [
   {
     id: "penguin",
     name: "Cool Penguin",
+    appName: "PenguinAI",
+    appTagline: "Cool & Collected Learning 🧊",
     avatar: penguinAvatar,
     emoji: "🐧",
     theme: {

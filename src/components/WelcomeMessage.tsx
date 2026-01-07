@@ -2,7 +2,7 @@ import { BookOpen, Brain, Target } from "lucide-react";
 import { useCustomization } from "@/context/CustomizationContext";
 
 export const WelcomeMessage = () => {
-  const { getAvatarUrl } = useCustomization();
+  const { getAvatarUrl, currentTheme } = useCustomization();
   
   const features = [
     { icon: BookOpen, text: "Get homework help step-by-step" },
@@ -16,7 +16,7 @@ export const WelcomeMessage = () => {
         <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-glow border-2 border-primary/20 animate-bounce-soft">
           <img 
             src={getAvatarUrl()} 
-            alt="StudyGPT Avatar" 
+            alt={`${currentTheme.appName} Avatar`}
             className="w-full h-full object-cover"
           />
         </div>
@@ -26,7 +26,7 @@ export const WelcomeMessage = () => {
         </h2>
         
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          I'm StudyGPT, your personal AI tutor. I'm here to help you learn, 
+          I'm {currentTheme.appName}, your personal AI tutor. I'm here to help you learn, 
           understand tricky topics, and ace your studies. What would you like to learn today?
         </p>
 
