@@ -48,7 +48,7 @@ const actions = [
 
 export const QuickActions = ({ onAction, disabled }: QuickActionsProps) => {
   return (
-    <div className="flex flex-wrap gap-2 justify-center">
+    <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
       {actions.map((action) => (
         <Button
           key={action.type}
@@ -56,10 +56,11 @@ export const QuickActions = ({ onAction, disabled }: QuickActionsProps) => {
           size="sm"
           onClick={() => onAction(action.type, action.prompt)}
           disabled={disabled}
-          className={`${action.color} border rounded-full px-4 py-2 text-sm font-medium transition-all hover:scale-105 active:scale-95`}
+          className={`${action.color} border rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all hover:scale-105 active:scale-95`}
         >
-          <action.icon className="w-4 h-4 mr-2" />
-          {action.label}
+          <action.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden xs:inline">{action.label}</span>
+          <span className="xs:hidden">{action.label.split(" ")[0]}</span>
         </Button>
       ))}
     </div>
