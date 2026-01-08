@@ -12,6 +12,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
+  fileType?: "image" | "pdf" | "sticker";
+  fileName?: string;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-chat`;
@@ -108,11 +110,20 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (content: string, imageUrl?: string) => {
-    const userMessage: Message = { role: "user", content, imageUrl };
+  const handleSend = async (content: string, fileUrl?: string, fileType?: "image" | "pdf" | "sticker") => {
+    const userMessage: Message = { 
+      role: "user", 
+      content, 
+      imageUrl: fileType === "image" ? fileUrl : undefined,
+      fileType 
+    };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    await streamChat(newMessages, currentAction || undefined);
+    
+    // Don't send stickers to AI, they're just visual
+    if (fileType !== "sticker") {
+      await streamChat(newMessages, currentAction || undefined);
+    }
   };
 
   const handleQuickAction = async (action: ActionType, prompt: string) => {
@@ -170,17 +181,18 @@ const Index = () => {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+      <div className="border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
+        <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4 space-y-2 sm:space-y-4">
           {/* Action indicator */}
           {currentAction && (
             <div className="flex items-center justify-center">
-              <div className={`text-sm font-medium px-4 py-2 rounded-full animate-fade-in ${
+              <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
                 currentAction === "exam" 
                   ? "bg-red-100 text-red-700" 
                   : "bg-primary/10 text-primary"
               }`}>
-                {getActionTitle(currentAction)} - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}
+                {getActionTitle(currentAction)}
+                <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
               </div>
             </div>
           )}

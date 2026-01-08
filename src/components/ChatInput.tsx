@@ -1,27 +1,34 @@
 import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Camera, Image, X } from "lucide-react";
+import { Send, Camera, Image, X, FileText } from "lucide-react";
+import { StickerPicker } from "./StickerPicker";
 
 interface ChatInputProps {
-  onSend: (message: string, imageUrl?: string) => void;
+  onSend: (message: string, fileUrl?: string, fileType?: "image" | "pdf" | "sticker") => void;
   disabled?: boolean;
 }
 
 export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   const [input, setInput] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [fileData, setFileData] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
-    if ((input.trim() || imageBase64) && !disabled) {
-      onSend(input.trim() || "What's in this image?", imageBase64 || undefined);
+    if ((input.trim() || fileData) && !disabled) {
+      onSend(input.trim() || (fileType === "pdf" ? `Sharing: ${fileName}` : "What's in this image?"), fileData || undefined, fileType || undefined);
       setInput("");
-      setImagePreview(null);
-      setImageBase64(null);
+      clearFile();
     }
+  };
+
+  const handleStickerSelect = (sticker: string) => {
+    onSend(sticker, undefined, "sticker");
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -39,15 +46,18 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
       return;
     }
 
+    setFileName(file.name);
+    setFileType("image");
+
     // Create preview
     const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
+    setFilePreview(previewUrl);
 
     // Convert to base64
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
-      setImageBase64(base64);
+      setFileData(base64);
     };
     reader.readAsDataURL(file);
 
@@ -55,33 +65,66 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     event.target.value = "";
   };
 
-  const clearImage = () => {
-    setImagePreview(null);
-    setImageBase64(null);
+  const handlePdfSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      return;
+    }
+
+    setFileName(file.name);
+    setFileType("pdf");
+    setFilePreview(null);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setFileData(base64);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    event.target.value = "";
+  };
+
+  const clearFile = () => {
+    setFilePreview(null);
+    setFileData(null);
+    setFileType(null);
+    setFileName(null);
   };
 
   return (
     <div className="space-y-3">
-      {/* Image Preview */}
-      {imagePreview && (
+      {/* File Preview */}
+      {(filePreview || (fileType === "pdf" && fileName)) && (
         <div className="relative inline-block">
-          <img
-            src={imagePreview}
-            alt="Selected"
-            className="h-20 w-auto rounded-lg border-2 border-primary/20 shadow-soft"
-          />
+          {fileType === "image" && filePreview ? (
+            <img
+              src={filePreview}
+              alt="Selected"
+              className="h-16 sm:h-20 w-auto rounded-lg border-2 border-primary/20 shadow-soft"
+            />
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg border-2 border-primary/20">
+              <FileText className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium truncate max-w-[150px]">{fileName}</span>
+            </div>
+          )}
           <Button
             variant="destructive"
             size="icon"
             className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-            onClick={clearImage}
+            onClick={clearFile}
           >
             <X className="h-3 w-3" />
           </Button>
         </div>
       )}
 
-      <div className="flex gap-2 items-end">
+      <div className="flex gap-1.5 sm:gap-2 items-end">
         {/* Hidden file inputs */}
         <input
           ref={cameraInputRef}
@@ -98,6 +141,13 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           onChange={handleImageSelect}
           className="hidden"
         />
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          onChange={handlePdfSelect}
+          className="hidden"
+        />
 
         {/* Camera Button */}
         <Button
@@ -105,10 +155,10 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           size="icon"
           onClick={() => cameraInputRef.current?.click()}
           disabled={disabled}
-          className="h-[52px] w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors"
+          className="h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors flex-shrink-0"
           title="Take Photo"
         >
-          <Camera className="h-5 w-5 text-muted-foreground" />
+          <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
         </Button>
 
         {/* Gallery Button */}
@@ -117,20 +167,35 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           size="icon"
           onClick={() => galleryInputRef.current?.click()}
           disabled={disabled}
-          className="h-[52px] w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors"
+          className="h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors flex-shrink-0"
           title="Choose from Gallery"
         >
-          <Image className="h-5 w-5 text-muted-foreground" />
+          <Image className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
         </Button>
 
+        {/* PDF Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => pdfInputRef.current?.click()}
+          disabled={disabled}
+          className="h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors flex-shrink-0"
+          title="Share PDF"
+        >
+          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+        </Button>
+
+        {/* Sticker Picker */}
+        <StickerPicker onSelect={handleStickerSelect} disabled={disabled} />
+
         {/* Text Input */}
-        <div className="flex-1 relative">
+        <div className="flex-1 min-w-0">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={imageBase64 ? "Ask about this image..." : "Ask me anything about your studies..."}
-            className="min-h-[52px] max-h-[120px] resize-none pr-4 rounded-xl border-2 border-border bg-card focus:border-primary transition-colors"
+            placeholder={fileData ? (fileType === "pdf" ? "Add a message..." : "Ask about this image...") : "Ask anything..."}
+            className="min-h-[44px] sm:min-h-[52px] max-h-[100px] sm:max-h-[120px] resize-none pr-3 sm:pr-4 rounded-xl border-2 border-border bg-card focus:border-primary transition-colors text-sm sm:text-base"
             disabled={disabled}
           />
         </div>
@@ -138,11 +203,11 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         {/* Send Button */}
         <Button
           onClick={handleSend}
-          disabled={(!input.trim() && !imageBase64) || disabled}
+          disabled={(!input.trim() && !fileData) || disabled}
           size="icon"
-          className="h-[52px] w-[52px] rounded-xl gradient-hero hover:opacity-90 transition-opacity shadow-medium"
+          className="h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl gradient-hero hover:opacity-90 transition-opacity shadow-medium flex-shrink-0"
         >
-          <Send className="h-5 w-5" />
+          <Send className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </div>
     </div>

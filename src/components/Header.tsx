@@ -12,11 +12,11 @@ export const Header = () => {
 
   return (
     <header className="bg-card border-b border-border shadow-soft">
-      <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="max-w-4xl mx-auto px-3 py-3 sm:px-4 sm:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-glow border-2 border-primary/20">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-glow border-2 border-primary/20">
                 <img 
                   src={getAvatarUrl()} 
                   alt={`${currentTheme.appName} Avatar`}
@@ -25,10 +25,10 @@ export const Header = () => {
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
                 {firstPart}<span className="text-primary">{secondPart}</span>
               </h1>
-              <p className="text-sm text-muted-foreground font-medium">
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium hidden xs:block">
                 {currentTheme.appTagline}
               </p>
             </div>
