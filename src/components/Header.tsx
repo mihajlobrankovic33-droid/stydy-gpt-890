@@ -1,5 +1,6 @@
 import { useCustomization } from "@/context/CustomizationContext";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Header = () => {
   const { getAvatarUrl, currentTheme } = useCustomization();
@@ -33,7 +34,10 @@ export const Header = () => {
               </p>
             </div>
           </div>
-          <InstallPWAButton />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ThemeToggle />
+            <InstallPWAButton />
+          </div>
         </div>
       </div>
     </header>

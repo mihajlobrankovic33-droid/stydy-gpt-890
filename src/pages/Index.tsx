@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -8,8 +8,10 @@ import { CustomizationPanel } from "@/components/CustomizationPanel";
 import { LockScreen } from "@/components/LockScreen";
 import { AdminPanel } from "@/components/AdminPanel";
 import { PanicButton } from "@/components/PanicButton";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
@@ -30,6 +32,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { auth, setOnClearMessages } = useAuth();
+  const isOnline = useOfflineStatus();
 
   // Register clear messages callback
   useEffect(() => {
@@ -214,6 +217,7 @@ const Index = () => {
 
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
+      <OfflineIndicator isOnline={isOnline} />
       <CustomizationPanel />
       <Header />
       <PanicButton />
