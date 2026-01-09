@@ -1,10 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
 import { CustomizationPanel } from "@/components/CustomizationPanel";
+import { LockScreen } from "@/components/LockScreen";
+import { AdminPanel } from "@/components/AdminPanel";
+import { PanicButton } from "@/components/PanicButton";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -22,8 +26,58 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { auth, setOnClearMessages } = useAuth();
+
+  // Register clear messages callback
+  useEffect(() => {
+    setOnClearMessages(() => setMessages([]));
+  }, [setOnClearMessages]);
+
+  // Anti-tamper: Disable right-click and F12
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Admin panel shortcut: Ctrl+Shift+A
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        if (auth.isAdmin) {
+          setShowAdminPanel(prev => !prev);
+        }
+        return;
+      }
+
+      // Close admin panel with Escape
+      if (e.key === 'Escape' && showAdminPanel) {
+        setShowAdminPanel(false);
+        return;
+      }
+
+      // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+        (e.ctrlKey && e.key === 'u')
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [auth.isAdmin, showAdminPanel]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -153,10 +207,19 @@ const Index = () => {
     }
   };
 
+  // Show lock screen if not authenticated
+  if (!auth.isAuthenticated) {
+    return <LockScreen />;
+  }
+
   return (
-    <div className="relative flex flex-col h-screen bg-background">
+    <div className="relative flex flex-col h-screen bg-background select-none">
       <CustomizationPanel />
       <Header />
+      <PanicButton />
+      
+      {/* Admin Panel */}
+      <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
       
       {/* Main chat area */}
       <div className="flex-1 overflow-hidden">
