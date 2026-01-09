@@ -17,14 +17,16 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
-        name: "StudyGPT - Your AI Study Buddy",
-        short_name: "StudyGPT",
-        description: "Your personal AI tutor for school learning",
-        theme_color: "#2a9d8f",
-        background_color: "#fdfbf7",
+        name: "Study Buddy",
+        short_name: "Study Buddy",
+        description: "Your personal study assistant",
+        theme_color: "#0f172a",
+        background_color: "#0f172a",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
+        // Allow users to rename when adding to home screen
+        prefer_related_applications: false,
         start_url: "/",
         icons: [
           {
