@@ -305,7 +305,7 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              ESC ili Ctrl+Shift+A za zatvaranje
+              ESC za zatvaranje
             </p>
           </div>
         </div>
