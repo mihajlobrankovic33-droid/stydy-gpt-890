@@ -298,6 +298,13 @@ const Index = () => {
           <ChatInput onSend={handleSend} disabled={isLoading} />
         </div>
       </div>
+
+      {/* Branding watermark */}
+      <div className="fixed bottom-2 right-3 pointer-events-none z-50">
+        <span className="text-[10px] font-medium text-muted-foreground/40 tracking-wide">
+          Powered by BUM Systems
+        </span>
+      </div>
     </div>
   );
 };
