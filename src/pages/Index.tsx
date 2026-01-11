@@ -10,10 +10,13 @@ import { ExpiredScreen } from "@/components/ExpiredScreen";
 import { AdminPanel } from "@/components/AdminPanel";
 import { PanicButton } from "@/components/PanicButton";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { PuskiceSection } from "@/components/PuskiceSection";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MessageCircle, FileText } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -231,29 +234,50 @@ const Index = () => {
       {/* Admin Panel */}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
       
-      {/* Main chat area */}
+      {/* Main content with tabs */}
       <div className="flex-1 overflow-hidden">
         <div className="max-w-4xl mx-auto h-full flex flex-col">
-          {messages.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <WelcomeMessage />
+          <Tabs defaultValue="chat" className="flex-1 flex flex-col">
+            <div className="px-4 pt-2">
+              <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
+                <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat
+                </TabsTrigger>
+                <TabsTrigger value="puskice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Puškice
+                </TabsTrigger>
+              </TabsList>
             </div>
-          ) : (
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-              <div className="space-y-4 pb-4">
-                {messages.map((message, index) => (
-                  <ChatMessage key={index} message={message} />
-                ))}
-                {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                  <TypingIndicator />
-                )}
-              </div>
-            </ScrollArea>
-          )}
+
+            <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
+              {messages.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <WelcomeMessage />
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                  <div className="space-y-4 pb-4">
+                    {messages.map((message, index) => (
+                      <ChatMessage key={index} message={message} />
+                    ))}
+                    {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                      <TypingIndicator />
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+
+            <TabsContent value="puskice" className="flex-1 mt-0 overflow-auto p-4">
+              <PuskiceSection />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
-      {/* Input area */}
+      {/* Input area - only show for chat */}
       <div className="border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
         <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4 space-y-2 sm:space-y-4">
           {/* Action indicator */}
