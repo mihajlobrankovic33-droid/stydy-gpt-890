@@ -26,8 +26,8 @@ import { useAuth } from "@/context/AuthContext";
 
 export function PuskiceSection() {
   const { auth } = useAuth();
-  // Admin has unlimited access - uses isAdmin from auth context
-  const isAdmin = auth.isAdmin;
+  // Admin or Pro users have unlimited access
+  const hasUnlimitedAccess = auth.isAdmin || auth.isPro;
   
   const [puskice, setPuskice] = useState<PuskiceItem[]>([]);
   const [remaining, setRemaining] = useState(5);
@@ -45,8 +45,8 @@ export function PuskiceSection() {
   }, []);
 
   const handleCreate = () => {
-    // Admin bypasses daily limit
-    if (!isAdmin && !canCreatePuskica()) {
+    // Admin/Pro bypasses daily limit
+    if (!hasUnlimitedAccess && !canCreatePuskica()) {
       setShowProModal(true);
       return;
     }
@@ -63,10 +63,10 @@ export function PuskiceSection() {
       return;
     }
 
-    const result = createPuskica(newTitle.trim(), newContent.trim(), isAdmin);
+    const result = createPuskica(newTitle.trim(), newContent.trim(), hasUnlimitedAccess);
 
-    // Admin bypasses daily limit check
-    if (!result.success && !isAdmin) {
+    // Only show pro modal if not unlimited access
+    if (!result.success && !hasUnlimitedAccess) {
       setShowCreateModal(false);
       setShowProModal(true);
       return;
@@ -134,10 +134,10 @@ export function PuskiceSection() {
           <h2 className="text-lg font-bold text-foreground">Moje Puškice</h2>
         </div>
         <div className="flex items-center gap-3">
-          {isAdmin ? (
-            <span className="flex items-center gap-1 text-sm text-primary font-semibold">
+          {hasUnlimitedAccess ? (
+            <span className="flex items-center gap-1 text-sm text-amber-400 font-semibold">
               <Shield className="w-4 h-4" />
-              Unlimited
+              {auth.isPro ? "Pro" : "Admin"} - Unlimited
             </span>
           ) : (
             <span className="text-sm text-muted-foreground">

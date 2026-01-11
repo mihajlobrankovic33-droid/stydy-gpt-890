@@ -10,8 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Crown, Sparkles, Zap, Shield, Palette, Headphones, CreditCard, Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Check, Crown, Sparkles, Zap, Shield, Palette, Headphones, CreditCard, Loader2, CheckCircle2, ArrowLeft, Key } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+// Stripe placeholder - ready for integration
+const STRIPE_PUBLISHABLE_KEY = "pk_test_placeholder";
 
 interface UnlockProModalProps {
   open: boolean;
@@ -19,9 +23,9 @@ interface UnlockProModalProps {
 }
 
 const benefits = [
-  { icon: Zap, text: "Unlimited 'puskice' (no daily limits)" },
-  { icon: Palette, text: "Exclusive Dark Mode & Custom Themes" },
-  { icon: Headphones, text: "Priority Support" },
+  { icon: Zap, text: "Neograničene 'puškice' (bez dnevnih limita)" },
+  { icon: Palette, text: "Ekskluzivni Dark Mode & Teme" },
+  { icon: Headphones, text: "Prioritetna Podrška" },
 ];
 
 const pricingPlans = [
@@ -30,6 +34,7 @@ const pricingPlans = [
     price: "350",
     period: "mjesec",
     highlight: false,
+    stripePrice: "price_monthly_placeholder",
   },
   {
     name: "Godišnje",
@@ -37,6 +42,7 @@ const pricingPlans = [
     period: "godina",
     highlight: false,
     savings: "Uštedi 71%",
+    stripePrice: "price_yearly_placeholder",
   },
   {
     name: "Lifetime",
@@ -44,19 +50,26 @@ const pricingPlans = [
     period: "zauvijek",
     highlight: true,
     badge: "Najbolja vrijednost",
+    stripePrice: "price_lifetime_placeholder",
   },
 ];
 
-type ModalView = "plans" | "payment" | "processing" | "success";
+// Secret admin code for permanent Pro access
+const SECRET_ADMIN_CODE = "MIHAJLO-BOSS";
+
+type ModalView = "plans" | "payment" | "processing" | "success" | "redeem";
 
 export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
   const { setIsPro } = useAuth();
+  const { toast } = useToast();
   const [view, setView] = useState<ModalView>("plans");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [cardHolder, setCardHolder] = useState("");
+  const [redeemCode, setRedeemCode] = useState("");
+  const [redeemError, setRedeemError] = useState("");
 
   const handleClose = () => {
     setView("plans");
@@ -65,6 +78,8 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
     setExpiryDate("");
     setCvv("");
     setCardHolder("");
+    setRedeemCode("");
+    setRedeemError("");
     onOpenChange(false);
   };
 
@@ -84,10 +99,28 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
 
   const handlePayNow = () => {
     setView("processing");
+    
+    // Simulate Stripe checkout - in production, this would redirect to Stripe
+    // const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY);
+    // await stripe.redirectToCheckout({ sessionId: ... });
+    
     setTimeout(() => {
       setIsPro(true);
       setView("success");
     }, 2000);
+  };
+
+  const handleRedeemCode = () => {
+    if (redeemCode.toUpperCase() === SECRET_ADMIN_CODE) {
+      setIsPro(true);
+      toast({
+        title: "🎉 Pro Aktiviran!",
+        description: "Permanentni Pro pristup je odobren.",
+      });
+      handleClose();
+    } else {
+      setRedeemError("Neispravan kod. Pokušaj ponovo.");
+    }
   };
 
   const isFormValid = cardNumber.replace(/\s/g, "").length === 16 && 
@@ -265,10 +298,69 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
     );
   }
 
+  // Redeem Code View
+  if (view === "redeem") {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setView("plans")}
+                className="h-8 w-8"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-400" />
+                  Unesi Kod
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Unesi promo ili licencni kod
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="redeemCode">Licencni Kod</Label>
+              <Input
+                id="redeemCode"
+                placeholder="XXXX-XXXX"
+                value={redeemCode}
+                onChange={(e) => {
+                  setRedeemCode(e.target.value.toUpperCase());
+                  setRedeemError("");
+                }}
+                className="uppercase font-mono text-center text-lg tracking-wider"
+              />
+              {redeemError && (
+                <p className="text-sm text-destructive text-center">{redeemError}</p>
+              )}
+            </div>
+          </div>
+
+          <Button
+            onClick={handleRedeemCode}
+            disabled={!redeemCode.trim()}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-6 text-lg shadow-lg shadow-amber-500/25 disabled:opacity-50"
+          >
+            <Key className="w-5 h-5 mr-2" />
+            Aktiviraj Kod
+          </Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   // Plans View (default)
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl bg-card border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl bg-card border-2 border-amber-500/30 max-h-[90vh] overflow-y-auto shadow-2xl shadow-amber-500/10">
         <DialogHeader className="text-center pb-2">
           <div className="flex justify-center mb-3">
             <div className="p-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/25">
@@ -289,10 +381,10 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10"
+              className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20"
             >
-              <div className="p-2 rounded-full bg-primary/10">
-                <benefit.icon className="w-4 h-4 text-primary" />
+              <div className="p-2 rounded-full bg-amber-500/10">
+                <benefit.icon className="w-4 h-4 text-amber-400" />
               </div>
               <span className="text-foreground font-medium">{benefit.text}</span>
               <Check className="w-4 h-4 text-emerald-400 ml-auto" />
@@ -308,14 +400,14 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
               onClick={() => setSelectedPlan(plan.name)}
               className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer ${
                 selectedPlan === plan.name
-                  ? "ring-2 ring-primary border-primary bg-primary/10"
+                  ? "ring-2 ring-amber-400 border-amber-400 bg-amber-500/10"
                   : plan.highlight
-                    ? "border-2 border-primary bg-primary/5 shadow-lg shadow-primary/20"
-                    : "border-border bg-card hover:border-primary/50"
+                    ? "border-2 border-amber-500/50 bg-amber-500/5 shadow-lg shadow-amber-500/20"
+                    : "border-border bg-card hover:border-amber-500/50"
               }`}
             >
               {plan.badge && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-accent text-white text-xs font-bold py-1 text-center">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold py-1 text-center">
                   {plan.badge}
                 </div>
               )}
@@ -351,11 +443,22 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
               }
             }}
             disabled={!selectedPlan}
-            className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-6 text-lg shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-6 text-lg shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all disabled:opacity-50"
           >
             <CreditCard className="w-5 h-5 mr-2" />
             Plati karticom
           </Button>
+          
+          {/* Redeem Key Link */}
+          <Button
+            variant="ghost"
+            onClick={() => setView("redeem")}
+            className="w-full text-muted-foreground hover:text-foreground"
+          >
+            <Key className="w-4 h-4 mr-2" />
+            Imam licencni kod
+          </Button>
+          
           <p className="text-center text-xs text-muted-foreground">
             Sigurno plaćanje • Otkaži bilo kada
           </p>
