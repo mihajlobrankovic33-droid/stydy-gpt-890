@@ -83,6 +83,21 @@ export function createPuskica(title: string, content: string, isAdmin: boolean =
   return { success: true, item: newItem };
 }
 
+export function updatePuskica(id: string, title: string, content: string): boolean {
+  const data = getData();
+  const index = data.items.findIndex(item => item.id === id);
+  
+  if (index === -1) return false;
+  
+  data.items[index] = {
+    ...data.items[index],
+    title,
+    content,
+  };
+  saveData(data);
+  return true;
+}
+
 export function deletePuskica(id: string): void {
   const data = getData();
   data.items = data.items.filter(item => item.id !== id);
