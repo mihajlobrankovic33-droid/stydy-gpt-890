@@ -8,6 +8,7 @@ import { CustomizationPanel } from "@/components/CustomizationPanel";
 import { LockScreen } from "@/components/LockScreen";
 import { ExpiredScreen } from "@/components/ExpiredScreen";
 import { AdminPanel } from "@/components/AdminPanel";
+import { AdminPasswordModal } from "@/components/AdminPasswordModal";
 import { PanicButton } from "@/components/PanicButton";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
@@ -33,6 +34,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { auth, setOnClearMessages } = useAuth();
@@ -51,11 +54,15 @@ const Index = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Admin panel shortcut: Shift+A (secret shortcut)
-      if (e.shiftKey && !e.ctrlKey && !e.metaKey && e.key === 'A') {
+      // Admin panel shortcut: Ctrl+A (secret shortcut)
+      if (e.ctrlKey && !e.shiftKey && !e.metaKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (auth.isAdmin) {
+        if (isAdminAuthenticated) {
+          // Already authenticated, toggle panel directly
           setShowAdminPanel(prev => !prev);
+        } else {
+          // Show password modal
+          setShowAdminPassword(true);
         }
         return;
       }
@@ -84,7 +91,12 @@ const Index = () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [auth.isAdmin, showAdminPanel]);
+  }, [isAdminAuthenticated, showAdminPanel]);
+
+  const handleAdminPasswordSuccess = () => {
+    setIsAdminAuthenticated(true);
+    setShowAdminPanel(true);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -230,6 +242,13 @@ const Index = () => {
       <CustomizationPanel />
       <Header />
       <PanicButton />
+      
+      {/* Admin Password Modal */}
+      <AdminPasswordModal 
+        open={showAdminPassword} 
+        onOpenChange={setShowAdminPassword}
+        onSuccess={handleAdminPasswordSuccess}
+      />
       
       {/* Admin Panel */}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
