@@ -251,3 +251,17 @@
     50% { opacity: 0.7; }
   }
 }
+
+/* Hide Lovable watermarks */
+[data-lovable-badge],
+.lovable-badge,
+a[href*="lovable.dev"]:not([data-keep]),
+div[class*="lovable"],
+span[class*="lovable"],
+img[alt*="Lovable"],
+img[src*="lovable"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

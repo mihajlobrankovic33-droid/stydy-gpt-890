@@ -318,10 +318,10 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Branding watermark */}
-      <div className="fixed bottom-2 right-3 pointer-events-none z-50">
-        <span className="text-[10px] font-medium text-muted-foreground/40 tracking-wide">
-          Powered by BUM Systems
+      {/* Footer Branding */}
+      <div className="fixed bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-50">
+        <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide">
+          © 2026 BUM Systems | Developed by Mihajlo
         </span>
       </div>
     </div>
