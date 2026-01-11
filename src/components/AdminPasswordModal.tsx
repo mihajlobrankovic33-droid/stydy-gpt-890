@@ -16,7 +16,7 @@ interface AdminPasswordModalProps {
   onSuccess: () => void;
 }
 
-const ADMIN_PASSWORD = "MIHAJLO-BUM";
+const ADMIN_PASSWORD = "MIHAJLO-ADMIN";
 
 export function AdminPasswordModal({ open, onOpenChange, onSuccess }: AdminPasswordModalProps) {
   const [password, setPassword] = useState("");
