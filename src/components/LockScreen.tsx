@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lock, KeyRound } from "lucide-react";
+import { Lock, KeyRound, Loader2 } from "lucide-react";
 
 export const LockScreen = () => {
   const [key, setKey] = useState("");
@@ -15,10 +15,7 @@ export const LockScreen = () => {
     setError(null);
     setIsLoading(true);
 
-    // Small delay for UX
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const result = login(key.trim());
+    const result = await login(key.trim());
     
     if (!result.success) {
       setError(result.error || "Greška pri prijavljivanju.");
@@ -29,53 +26,61 @@ export const LockScreen = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 opacity-80" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-black to-accent/5" />
       
       {/* Lock screen content */}
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800/50 border border-slate-700/50 mb-4">
-            <Lock className="w-8 h-8 text-slate-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 mb-6 shadow-[0_0_40px_hsl(174,100%,50%,0.15)]">
+            <Lock className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-xl font-semibold text-slate-200 mb-2">Study Buddy</h1>
-          <p className="text-sm text-slate-500">Privatni pristup</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Study Buddy</h1>
+          <p className="text-sm text-muted-foreground">Premium pristup</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value.toUpperCase())}
               placeholder="Unesite licencni ključ"
-              className="pl-10 bg-slate-900/50 border-slate-700/50 text-slate-200 placeholder:text-slate-600 focus:border-slate-600 focus:ring-slate-600"
+              className="pl-12 h-14 bg-card/50 border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary text-center text-lg tracking-widest font-mono"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="characters"
               spellCheck={false}
+              disabled={isLoading}
             />
           </div>
 
           {error && (
-            <div className="text-center">
-              <p className="text-sm text-red-400 animate-fade-in">{error}</p>
+            <div className="text-center p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+              <p className="text-sm text-destructive animate-fade-in">{error}</p>
             </div>
           )}
 
           <Button
             type="submit"
             disabled={!key.trim() || isLoading}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/50"
+            className="w-full h-14 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-bold text-lg rounded-xl shadow-lg transition-all"
           >
-            {isLoading ? "Proveravam..." : "Pristupi"}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Proveravam...
+              </>
+            ) : (
+              "Pristupi"
+            )}
           </Button>
         </form>
 
-        <p className="text-center text-xs text-slate-600 mt-8">
-          Samo za ovlašćene korisnike
+        <p className="text-center text-xs text-muted-foreground/50 mt-8">
+          Premium korisnici imaju neograničen pristup
         </p>
       </div>
     </div>

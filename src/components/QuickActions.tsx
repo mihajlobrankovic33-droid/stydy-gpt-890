@@ -14,35 +14,35 @@ const actions = [
     label: "Explain Simply",
     icon: Lightbulb,
     prompt: "Please explain this topic in the simplest way possible, step by step:",
-    color: "bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200",
+    color: "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 hover:border-amber-500/50",
   },
   {
     type: "summary" as ActionType,
     label: "Create Summary",
     icon: FileText,
     prompt: "Please create a clear, organized summary of this topic:",
-    color: "bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200",
+    color: "bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 border-sky-500/30 hover:border-sky-500/50",
   },
   {
     type: "quiz" as ActionType,
     label: "Make a Quiz",
     icon: HelpCircle,
     prompt: "Please create a short quiz with 5 multiple-choice questions about:",
-    color: "bg-green-100 text-green-700 hover:bg-green-200 border-green-200",
+    color: "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 hover:border-emerald-500/50",
   },
   {
     type: "homework" as ActionType,
     label: "Help with Homework",
     icon: BookOpen,
     prompt: "I need help with my homework. Please guide me through this problem:",
-    color: "bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-200",
+    color: "bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/30 hover:border-violet-500/50",
   },
   {
     type: "exam" as ActionType,
     label: "Exam Mode",
     icon: GraduationCap,
     prompt: "I'm preparing for an exam. Please give me direct, clear answers:",
-    color: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200",
+    color: "bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30 hover:border-red-500/50",
   },
 ];
 
@@ -56,7 +56,7 @@ export const QuickActions = ({ onAction, disabled }: QuickActionsProps) => {
           size="sm"
           onClick={() => onAction(action.type, action.prompt)}
           disabled={disabled}
-          className={`${action.color} border rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all hover:scale-105 active:scale-95`}
+          className={`${action.color} border rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all hover:scale-105 active:scale-95 shadow-sm`}
         >
           <action.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
           <span className="hidden xs:inline">{action.label}</span>

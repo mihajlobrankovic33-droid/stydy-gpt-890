@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { 
-  validateLicenseKey, 
-  isLicenseActive, 
-  registerDevice, 
-  isAdminKey,
-  type DeviceEntry,
+  validateLicense, 
+  checkLicenseStatus, 
+  isAdminCode,
+  type License,
   type AvatarType 
-} from "@/lib/deviceRegistry";
+} from "@/lib/licenseService";
 import { useCustomization } from "@/context/CustomizationContext";
 
 const AUTH_STORAGE_KEY = 'study-buddy-auth';
@@ -17,13 +16,15 @@ interface AuthState {
   userName: string | null;
   avatar: AvatarType | null;
   isAdmin: boolean;
+  expiryDate: string | null;
+  isExpired: boolean;
 }
 
 interface AuthContextType {
   auth: AuthState;
-  login: (key: string) => { success: boolean; error?: string };
+  login: (key: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  checkAuth: () => boolean;
+  checkAuth: () => Promise<boolean>;
   clearMessages: () => void;
   onClearMessages?: () => void;
   setOnClearMessages: (callback: () => void) => void;
@@ -35,6 +36,8 @@ const defaultAuth: AuthState = {
   userName: null,
   avatar: null,
   isAdmin: false,
+  expiryDate: null,
+  isExpired: false,
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,63 +57,79 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Load auth from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Verify the key is still active
-        if (parsed.licenseKey && isLicenseActive(parsed.licenseKey)) {
-          setAuth(parsed);
-          if (parsed.avatar) {
-            selectTheme(parsed.avatar);
+    const loadAuth = async () => {
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.licenseKey) {
+            // Verify the key is still valid
+            const status = await checkLicenseStatus(parsed.licenseKey);
+            if (status.valid) {
+              setAuth(parsed);
+              if (parsed.avatar) {
+                selectTheme(parsed.avatar);
+              }
+            } else if (status.expired) {
+              // Show expired state
+              setAuth({
+                ...parsed,
+                isAuthenticated: true,
+                isExpired: true,
+              });
+            } else {
+              // Key invalid, clear storage
+              localStorage.removeItem(AUTH_STORAGE_KEY);
+            }
           }
-          registerDevice(parsed.licenseKey);
-        } else {
-          // Key expired or invalid, clear storage
+        } catch {
           localStorage.removeItem(AUTH_STORAGE_KEY);
         }
-      } catch {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
       }
-    }
+    };
+
+    loadAuth();
   }, []);
 
   // Check auth status periodically (kill switch)
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.licenseKey) return;
 
-    const checkInterval = setInterval(() => {
-      if (!isLicenseActive(auth.licenseKey!)) {
-        logout();
+    const checkInterval = setInterval(async () => {
+      const status = await checkLicenseStatus(auth.licenseKey!);
+      if (!status.valid) {
+        if (status.expired) {
+          setAuth(prev => ({ ...prev, isExpired: true }));
+        } else {
+          logout();
+        }
       }
-    }, 5000); // Check every 5 seconds
+    }, 10000); // Check every 10 seconds
 
     return () => clearInterval(checkInterval);
   }, [auth.isAuthenticated, auth.licenseKey]);
 
-  const login = useCallback((key: string): { success: boolean; error?: string } => {
-    const entry = validateLicenseKey(key);
+  const login = useCallback(async (key: string): Promise<{ success: boolean; error?: string }> => {
+    const result = await validateLicense(key);
     
-    if (!entry) {
-      return { success: false, error: "Neispravan licencni ključ." };
+    if (!result.valid || !result.license) {
+      return { success: false, error: result.error };
     }
     
-    if (entry.status === 'expired') {
-      return { success: false, error: "Pristup je istekao. Kontaktiraj admina." };
-    }
-    
+    const license = result.license;
     const newAuth: AuthState = {
       isAuthenticated: true,
-      licenseKey: entry.key,
-      userName: entry.name,
-      avatar: entry.avatar,
-      isAdmin: isAdminKey(entry.key),
+      licenseKey: license.unique_code,
+      userName: license.user_name,
+      avatar: license.avatar as AvatarType,
+      isAdmin: isAdminCode(license.unique_code),
+      expiryDate: license.expiry_date,
+      isExpired: false,
     };
     
     setAuth(newAuth);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newAuth));
-    selectTheme(entry.avatar);
-    registerDevice(entry.key);
+    selectTheme(license.avatar as AvatarType);
     
     return { success: true };
   }, [selectTheme]);
@@ -121,9 +140,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('studygpt-customization-v2');
   }, []);
 
-  const checkAuth = useCallback((): boolean => {
+  const checkAuth = useCallback(async (): Promise<boolean> => {
     if (!auth.isAuthenticated || !auth.licenseKey) return false;
-    return isLicenseActive(auth.licenseKey);
+    const status = await checkLicenseStatus(auth.licenseKey);
+    return status.valid;
   }, [auth]);
 
   const clearMessages = useCallback(() => {

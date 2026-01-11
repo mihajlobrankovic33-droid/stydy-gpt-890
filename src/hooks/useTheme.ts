@@ -5,8 +5,9 @@ type Theme = "light" | "dark";
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("studybuddy-theme");
+    // Default to dark mode for premium experience
     if (saved === "light" || saved === "dark") return saved;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return "dark";
   });
 
   useEffect(() => {
