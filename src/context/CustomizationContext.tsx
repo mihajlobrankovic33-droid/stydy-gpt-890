@@ -152,22 +152,43 @@ export const CustomizationProvider = ({ children }: { children: ReactNode }) => 
     return saved ? JSON.parse(saved) : defaultSettings;
   });
 
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
+
   const currentTheme = avatarThemes.find((t) => t.id === settings.selectedThemeId) || avatarThemes[0];
+
+  // Track theme mode changes (e.g. via ThemeToggle)
+  useEffect(() => {
+    const el = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(el.classList.contains("dark"));
+    });
+
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("studygpt-customization-v2", JSON.stringify(settings));
 
     // Apply theme colors
+    // IMPORTANT: In dark mode we keep the global "Midnight Black" background + card colors.
+    // Only primary/accent follow the selected buddy.
     const root = document.documentElement;
     root.style.setProperty("--primary", currentTheme.theme.primary);
     root.style.setProperty("--accent", currentTheme.theme.accent);
-    root.style.setProperty("--background", currentTheme.theme.background);
-    root.style.setProperty("--card", currentTheme.theme.cardBackground);
     root.style.setProperty("--ring", currentTheme.theme.primary);
-    
+
+    if (isDarkMode) {
+      root.style.removeProperty("--background");
+      root.style.removeProperty("--card");
+    } else {
+      root.style.setProperty("--background", currentTheme.theme.background);
+      root.style.setProperty("--card", currentTheme.theme.cardBackground);
+    }
+
     // Reset body background
     document.body.style.background = "";
-  }, [settings, currentTheme]);
+  }, [settings, currentTheme, isDarkMode]);
 
   const selectTheme = (themeId: string) => {
     setSettings((prev) => ({
