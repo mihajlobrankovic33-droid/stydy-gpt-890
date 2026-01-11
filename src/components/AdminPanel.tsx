@@ -87,7 +87,7 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] bg-black">
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
