@@ -51,8 +51,8 @@ const Index = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Admin panel shortcut: Ctrl+Shift+A
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      // Admin panel shortcut: Shift+A (secret shortcut)
+      if (e.shiftKey && !e.ctrlKey && !e.metaKey && e.key === 'A') {
         e.preventDefault();
         if (auth.isAdmin) {
           setShowAdminPanel(prev => !prev);
