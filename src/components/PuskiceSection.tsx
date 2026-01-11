@@ -19,10 +19,15 @@ import {
   deletePuskica,
   PuskiceItem,
 } from "@/lib/puskiceService";
-import { Plus, Eye, Trash2, FileText, Sparkles, X } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, Sparkles, X, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export function PuskiceSection() {
+  const { auth } = useAuth();
+  // Admin has unlimited access - uses isAdmin from auth context
+  const isAdmin = auth.isAdmin;
+  
   const [puskice, setPuskice] = useState<PuskiceItem[]>([]);
   const [remaining, setRemaining] = useState(5);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,7 +43,8 @@ export function PuskiceSection() {
   }, []);
 
   const handleCreate = () => {
-    if (!canCreatePuskica()) {
+    // Admin bypasses daily limit
+    if (!isAdmin && !canCreatePuskica()) {
       setShowProModal(true);
       return;
     }
@@ -55,9 +61,10 @@ export function PuskiceSection() {
       return;
     }
 
-    const result = createPuskica(newTitle.trim(), newContent.trim());
+    const result = createPuskica(newTitle.trim(), newContent.trim(), isAdmin);
 
-    if (!result.success) {
+    // Admin bypasses daily limit check
+    if (!result.success && !isAdmin) {
       setShowCreateModal(false);
       setShowProModal(true);
       return;
@@ -93,9 +100,16 @@ export function PuskiceSection() {
           <h2 className="text-lg font-bold text-foreground">Moje Puškice</h2>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            Preostalo danas: <span className="font-bold text-primary">{remaining}/5</span>
-          </span>
+          {isAdmin ? (
+            <span className="flex items-center gap-1 text-sm text-primary font-semibold">
+              <Shield className="w-4 h-4" />
+              Unlimited
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              Preostalo danas: <span className="font-bold text-primary">{remaining}/5</span>
+            </span>
+          )}
           <Button
             onClick={handleCreate}
             size="sm"

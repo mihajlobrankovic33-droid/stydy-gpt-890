@@ -58,10 +58,11 @@ export function getAllPuskice(): PuskiceItem[] {
   return getData().items;
 }
 
-export function createPuskica(title: string, content: string): { success: boolean; item?: PuskiceItem } {
+export function createPuskica(title: string, content: string, isAdmin: boolean = false): { success: boolean; item?: PuskiceItem } {
   const data = getData();
   
-  if (data.count >= DAILY_LIMIT) {
+  // Admin bypasses daily limit
+  if (!isAdmin && data.count >= DAILY_LIMIT) {
     return { success: false };
   }
   
@@ -72,7 +73,10 @@ export function createPuskica(title: string, content: string): { success: boolea
     createdAt: new Date().toISOString(),
   };
   
-  data.count += 1;
+  // Only increment count for non-admin users
+  if (!isAdmin) {
+    data.count += 1;
+  }
   data.items.push(newItem);
   saveData(data);
   
