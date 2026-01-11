@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      licenses: {
+        Row: {
+          avatar: string
+          created_at: string
+          device_id: string | null
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          unique_code: string
+          updated_at: string
+          user_name: string
+        }
+        Insert: {
+          avatar?: string
+          created_at?: string
+          device_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          unique_code: string
+          updated_at?: string
+          user_name: string
+        }
+        Update: {
+          avatar?: string
+          created_at?: string
+          device_id?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          unique_code?: string
+          updated_at?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

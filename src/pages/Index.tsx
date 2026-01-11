@@ -6,6 +6,7 @@ import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
 import { CustomizationPanel } from "@/components/CustomizationPanel";
 import { LockScreen } from "@/components/LockScreen";
+import { ExpiredScreen } from "@/components/ExpiredScreen";
 import { AdminPanel } from "@/components/AdminPanel";
 import { PanicButton } from "@/components/PanicButton";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -215,6 +216,11 @@ const Index = () => {
     return <LockScreen />;
   }
 
+  // Show expired screen if license expired
+  if (auth.isExpired) {
+    return <ExpiredScreen userName={auth.userName} />;
+  }
+
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
@@ -255,8 +261,8 @@ const Index = () => {
             <div className="flex items-center justify-center">
               <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
                 currentAction === "exam" 
-                  ? "bg-red-100 text-red-700" 
-                  : "bg-primary/10 text-primary"
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30" 
+                  : "bg-primary/10 text-primary border border-primary/30"
               }`}>
                 {getActionTitle(currentAction)}
                 <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
