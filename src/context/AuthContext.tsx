@@ -18,6 +18,7 @@ interface AuthState {
   isAdmin: boolean;
   expiryDate: string | null;
   isExpired: boolean;
+  isPro: boolean;
 }
 
 interface AuthContextType {
@@ -28,6 +29,7 @@ interface AuthContextType {
   clearMessages: () => void;
   onClearMessages?: () => void;
   setOnClearMessages: (callback: () => void) => void;
+  setIsPro: (isPro: boolean) => void;
 }
 
 const defaultAuth: AuthState = {
@@ -38,6 +40,7 @@ const defaultAuth: AuthState = {
   isAdmin: false,
   expiryDate: null,
   isExpired: false,
+  isPro: false,
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -125,6 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin: isAdminCode(license.unique_code),
       expiryDate: license.expiry_date,
       isExpired: false,
+      isPro: false,
     };
     
     setAuth(newAuth);
@@ -156,6 +160,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setOnClearMessagesCallback(() => callback);
   }, []);
 
+  const setIsPro = useCallback((isPro: boolean) => {
+    setAuth(prev => {
+      const updated = { ...prev, isPro };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider value={{ 
       auth, 
@@ -163,7 +175,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout, 
       checkAuth, 
       clearMessages,
-      setOnClearMessages 
+      setOnClearMessages,
+      setIsPro 
     }}>
       {children}
     </AuthContext.Provider>
