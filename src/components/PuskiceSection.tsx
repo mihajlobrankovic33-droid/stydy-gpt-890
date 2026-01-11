@@ -17,9 +17,10 @@ import {
   getAllPuskice,
   createPuskica,
   deletePuskica,
+  updatePuskica,
   PuskiceItem,
 } from "@/lib/puskiceService";
-import { Plus, Eye, Trash2, FileText, Sparkles, X, Shield } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -33,6 +34,7 @@ export function PuskiceSection() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showQuickView, setShowQuickView] = useState<PuskiceItem | null>(null);
+  const [editingItem, setEditingItem] = useState<PuskiceItem | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const { toast } = useToast();
@@ -80,6 +82,38 @@ export function PuskiceSection() {
       title: "Uspješno!",
       description: "Puškica je kreirana.",
     });
+  };
+
+  const handleEdit = (item: PuskiceItem) => {
+    setEditingItem(item);
+    setNewTitle(item.title);
+    setNewContent(item.content);
+  };
+
+  const handleUpdate = () => {
+    if (!editingItem) return;
+    
+    if (!newTitle.trim() || !newContent.trim()) {
+      toast({
+        title: "Greška",
+        description: "Molimo unesi naslov i sadržaj.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = updatePuskica(editingItem.id, newTitle.trim(), newContent.trim());
+    
+    if (success) {
+      setPuskice(getAllPuskice());
+      setEditingItem(null);
+      setNewTitle("");
+      setNewContent("");
+      toast({
+        title: "Uspješno!",
+        description: "Puškica je ažurirana.",
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -163,7 +197,15 @@ export function PuskiceSection() {
                     className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
                   >
                     <Eye className="w-4 h-4 mr-1" />
-                    Quick View
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(item)}
+                    className="border-accent/30 text-accent hover:bg-accent/10"
+                  >
+                    <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -238,6 +280,52 @@ export function PuskiceSection() {
                 {showQuickView?.content}
               </p>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={!!editingItem} onOpenChange={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); }}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Uredi Puškicu</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Izmijeni naslov ili sadržaj puškice.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Input
+                placeholder="Naslov (npr. Matematika - Formule)"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <Textarea
+                placeholder="Sadržaj puškice..."
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={6}
+                className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); }}
+              className="flex-1"
+            >
+              Odustani
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              className="flex-1 bg-gradient-to-r from-primary to-accent text-white"
+            >
+              Spremi Izmjene
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
