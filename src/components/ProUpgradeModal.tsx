@@ -10,14 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, Crown, Sparkles, Zap, Shield, Palette, Headphones, CreditCard, Loader2, CheckCircle2, ArrowLeft, Key } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { Check, Crown, Sparkles, Zap, Palette, Headphones, CreditCard, Loader2, CheckCircle2, ArrowLeft, Key } from "lucide-react";
+import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-// Stripe placeholder - ready for integration
-const STRIPE_PUBLISHABLE_KEY = "pk_test_placeholder";
-
-interface UnlockProModalProps {
+interface ProUpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -28,42 +25,12 @@ const benefits = [
   { icon: Headphones, text: "Prioritetna Podrška" },
 ];
 
-const pricingPlans = [
-  {
-    name: "Mjesečno",
-    price: "350",
-    period: "mjesec",
-    highlight: false,
-    stripePrice: "price_monthly_placeholder",
-  },
-  {
-    name: "Godišnje",
-    price: "1,200",
-    period: "godina",
-    highlight: false,
-    savings: "Uštedi 71%",
-    stripePrice: "price_yearly_placeholder",
-  },
-  {
-    name: "Lifetime",
-    price: "2,600",
-    period: "zauvijek",
-    highlight: true,
-    badge: "Najbolja vrijednost",
-    stripePrice: "price_lifetime_placeholder",
-  },
-];
+type ModalView = "plan" | "payment" | "processing" | "success" | "redeem";
 
-// Secret admin code for permanent Pro access
-const SECRET_ADMIN_CODE = "MIHAJLO-BOSS";
-
-type ModalView = "plans" | "payment" | "processing" | "success" | "redeem";
-
-export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
-  const { setIsPro } = useAuth();
+export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
+  const { activateProWithCode, activateProWithPayment } = useSupabaseAuth();
   const { toast } = useToast();
-  const [view, setView] = useState<ModalView>("plans");
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [view, setView] = useState<ModalView>("plan");
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
@@ -72,8 +39,7 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
   const [redeemError, setRedeemError] = useState("");
 
   const handleClose = () => {
-    setView("plans");
-    setSelectedPlan(null);
+    setView("plan");
     setCardNumber("");
     setExpiryDate("");
     setCvv("");
@@ -97,29 +63,27 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
     return cleaned;
   };
 
-  const handlePayNow = () => {
+  const handlePayNow = async () => {
     setView("processing");
     
-    // Simulate Stripe checkout - in production, this would redirect to Stripe
-    // const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY);
-    // await stripe.redirectToCheckout({ sessionId: ... });
-    
-    setTimeout(() => {
-      setIsPro(true);
+    // Simulate payment processing
+    setTimeout(async () => {
+      await activateProWithPayment();
       setView("success");
     }, 2000);
   };
 
-  const handleRedeemCode = () => {
-    if (redeemCode.toUpperCase() === SECRET_ADMIN_CODE) {
-      setIsPro(true);
+  const handleRedeemCode = async () => {
+    const result = await activateProWithCode(redeemCode);
+    
+    if (result.success) {
       toast({
         title: "🎉 Pro Aktiviran!",
         description: "Permanentni Pro pristup je odobren.",
       });
       handleClose();
     } else {
-      setRedeemError("Neispravan kod. Pokušaj ponovo.");
+      setRedeemError(result.error || "Neispravan kod. Pokušaj ponovo.");
     }
   };
 
@@ -138,10 +102,13 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
               <CheckCircle2 className="w-12 h-12 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              Payment Successful!
+              Plaćanje Uspešno!
             </h2>
-            <p className="text-muted-foreground mb-6">
-              Pro Features Unlocked. 🎉
+            <p className="text-muted-foreground mb-2">
+              Pro funkcije su otključane na 30 dana. 🎉
+            </p>
+            <p className="text-sm text-muted-foreground/70 mb-6">
+              Nakon isteka ćeš se vratiti na besplatni plan (5 puškica dnevno).
             </p>
             <Button
               onClick={handleClose}
@@ -176,8 +143,6 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
 
   // Payment Form View
   if (view === "payment") {
-    const plan = pricingPlans.find(p => p.name === selectedPlan);
-    
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-md bg-card border-border">
@@ -186,7 +151,7 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setView("plans")}
+                onClick={() => setView("plan")}
                 className="h-8 w-8"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -196,11 +161,9 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
                   <CreditCard className="w-5 h-5 text-primary" />
                   Plaćanje karticom
                 </DialogTitle>
-                {plan && (
-                  <DialogDescription className="text-muted-foreground">
-                    {plan.name}: {plan.price} RSD
-                  </DialogDescription>
-                )}
+                <DialogDescription className="text-muted-foreground">
+                  Mjesečno: 350 RSD (30 dana)
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -286,8 +249,8 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
             disabled={!isFormValid}
             className="w-full bg-gradient-to-r from-primary to-accent text-white font-bold py-6 text-lg shadow-lg shadow-primary/25 disabled:opacity-50"
           >
-            <Shield className="w-5 h-5 mr-2" />
-            Plati {plan?.price} RSD
+            <CreditCard className="w-5 h-5 mr-2" />
+            Plati 350 RSD
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
@@ -308,7 +271,7 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setView("plans")}
+                onClick={() => setView("plan")}
                 className="h-8 w-8"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -357,10 +320,10 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
     );
   }
 
-  // Plans View (default)
+  // Plan View (default)
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl bg-card border-2 border-amber-500/30 max-h-[90vh] overflow-y-auto shadow-2xl shadow-amber-500/10">
+      <DialogContent className="sm:max-w-md bg-card border-2 border-amber-500/30 max-h-[90vh] overflow-y-auto shadow-2xl shadow-amber-500/10">
         <DialogHeader className="text-center pb-2">
           <div className="flex justify-center mb-3">
             <div className="p-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/25">
@@ -368,7 +331,7 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
             </div>
           </div>
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-            Unlock Pro
+            Upgrade na Pro
             <Sparkles className="w-5 h-5 text-amber-400" />
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -392,61 +355,30 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
           ))}
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-4">
-          {pricingPlans.map((plan) => (
-            <Card
-              key={plan.name}
-              onClick={() => setSelectedPlan(plan.name)}
-              className={`relative overflow-hidden transition-all hover:scale-105 cursor-pointer ${
-                selectedPlan === plan.name
-                  ? "ring-2 ring-amber-400 border-amber-400 bg-amber-500/10"
-                  : plan.highlight
-                    ? "border-2 border-amber-500/50 bg-amber-500/5 shadow-lg shadow-amber-500/20"
-                    : "border-border bg-card hover:border-amber-500/50"
-              }`}
-            >
-              {plan.badge && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold py-1 text-center">
-                  {plan.badge}
-                </div>
-              )}
-              <CardHeader className={`pb-2 ${plan.badge ? "pt-8" : ""}`}>
-                <CardTitle className="text-center">
-                  <span className="text-sm font-medium text-muted-foreground block mb-1">
-                    {plan.name}
-                  </span>
-                  <span className="text-2xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-sm text-muted-foreground ml-1">RSD</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-4 text-center">
-                <span className="text-xs text-muted-foreground">/{plan.period}</span>
-                {plan.savings && (
-                  <div className="mt-2">
-                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
-                      {plan.savings}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Single Pricing Card */}
+        <Card className="border-2 border-amber-500/50 bg-amber-500/5 shadow-lg shadow-amber-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-center">
+              <span className="text-sm font-medium text-muted-foreground block mb-1">
+                Mjesečno
+              </span>
+              <span className="text-3xl font-bold text-foreground">350</span>
+              <span className="text-sm text-muted-foreground ml-1">RSD</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 pb-4 text-center">
+            <span className="text-sm text-muted-foreground">30 dana Pro pristupa</span>
+          </CardContent>
+        </Card>
 
         {/* CTAs */}
         <div className="pt-2 space-y-3">
           <Button
-            onClick={() => {
-              if (selectedPlan) {
-                setView("payment");
-              }
-            }}
-            disabled={!selectedPlan}
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-6 text-lg shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all disabled:opacity-50"
+            onClick={() => setView("payment")}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-6 text-lg shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all"
           >
             <CreditCard className="w-5 h-5 mr-2" />
-            Plati karticom
+            Plati 350 RSD
           </Button>
           
           {/* Redeem Key Link */}
@@ -460,7 +392,7 @@ export function UnlockProModal({ open, onOpenChange }: UnlockProModalProps) {
           </Button>
           
           <p className="text-center text-xs text-muted-foreground">
-            Sigurno plaćanje • Otkaži bilo kada
+            Sigurno plaćanje • Pristup na 30 dana
           </p>
         </div>
       </DialogContent>

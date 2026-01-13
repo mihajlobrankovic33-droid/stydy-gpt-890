@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { X } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 export const PanicButton = () => {
@@ -8,7 +8,7 @@ export const PanicButton = () => {
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { logout, clearMessages } = useAuth();
+  const { signOut } = useSupabaseAuth();
   const { toast } = useToast();
 
   const HOLD_DURATION = 5000; // 5 seconds
@@ -27,13 +27,13 @@ export const PanicButton = () => {
 
     // Logout after 5 seconds
     holdTimerRef.current = setTimeout(() => {
-      logout();
+      signOut();
       toast({
         title: "Odjavljeni ste",
         description: "Sesija je zatvorena.",
       });
     }, HOLD_DURATION);
-  }, [logout, toast]);
+  }, [signOut, toast]);
 
   const endHold = useCallback(() => {
     if (holdTimerRef.current) {
@@ -48,20 +48,8 @@ export const PanicButton = () => {
     setHoldProgress(0);
   }, []);
 
-  const handleClick = useCallback(() => {
-    // Only clear messages on quick tap (not hold)
-    if (!isHolding && holdProgress === 0) {
-      clearMessages();
-      toast({
-        title: "Chat obrisan",
-        description: "Svi razgovori su uklonjeni.",
-      });
-    }
-  }, [isHolding, holdProgress, clearMessages, toast]);
-
   return (
     <button
-      onClick={handleClick}
       onMouseDown={startHold}
       onMouseUp={endHold}
       onMouseLeave={endHold}
@@ -73,7 +61,7 @@ export const PanicButton = () => {
           ? `conic-gradient(from 0deg, rgb(239 68 68 / 0.5) ${holdProgress}%, rgb(15 23 42 / 0.8) ${holdProgress}%)`
           : undefined,
       }}
-      title="Tap: Obriši chat | Drži 5s: Odjavi se"
+      title="Drži 5s: Odjavi se"
     >
       <X className="w-4 h-4" />
     </button>
