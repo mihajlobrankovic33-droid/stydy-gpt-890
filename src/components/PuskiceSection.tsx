@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { UnlockProModal } from "./UnlockProModal";
+import { ProUpgradeModal } from "./ProUpgradeModal";
 import {
   canCreatePuskica,
   getRemainingToday,
@@ -22,12 +22,12 @@ import {
 } from "@/lib/puskiceService";
 import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/AuthContext";
+import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 
 export function PuskiceSection() {
-  const { auth } = useAuth();
-  // Admin or Pro users have unlimited access
-  const hasUnlimitedAccess = auth.isAdmin || auth.isPro;
+  const { isPro, isLifetimePro } = useSupabaseAuth();
+  // Pro users have unlimited access
+  const hasUnlimitedAccess = isPro;
   
   const [puskice, setPuskice] = useState<PuskiceItem[]>([]);
   const [remaining, setRemaining] = useState(5);
@@ -45,7 +45,7 @@ export function PuskiceSection() {
   }, []);
 
   const handleCreate = () => {
-    // Admin/Pro bypasses daily limit
+    // Pro bypasses daily limit
     if (!hasUnlimitedAccess && !canCreatePuskica()) {
       setShowProModal(true);
       return;
@@ -137,7 +137,7 @@ export function PuskiceSection() {
           {hasUnlimitedAccess ? (
             <span className="flex items-center gap-1 text-sm text-amber-400 font-semibold">
               <Shield className="w-4 h-4" />
-              {auth.isPro ? "Pro" : "Admin"} - Unlimited
+              {isLifetimePro ? "Lifetime Pro" : "Pro"} - Unlimited
             </span>
           ) : (
             <span className="text-sm text-muted-foreground">
@@ -330,8 +330,8 @@ export function PuskiceSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Unlock Pro Modal */}
-      <UnlockProModal open={showProModal} onOpenChange={setShowProModal} />
+      {/* Pro Upgrade Modal */}
+      <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
     </div>
   );
 }

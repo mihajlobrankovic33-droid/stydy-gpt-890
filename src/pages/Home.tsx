@@ -5,19 +5,20 @@ import { ChatInput } from "@/components/ChatInput";
 import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
 import { CustomizationPanel } from "@/components/CustomizationPanel";
-import { LockScreen } from "@/components/LockScreen";
-import { ExpiredScreen } from "@/components/ExpiredScreen";
 import { AdminPanel } from "@/components/AdminPanel";
 import { AdminPasswordModal } from "@/components/AdminPasswordModal";
 import { PanicButton } from "@/components/PanicButton";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
-import { useAuth } from "@/context/AuthContext";
+import { AuthScreen } from "@/components/AuthScreen";
+import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText } from "lucide-react";
+import { MessageCircle, FileText, Crown, LogOut, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   role: "user" | "assistant";
@@ -29,22 +30,18 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-chat`;
 
-const Index = () => {
+const Home = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [showProModal, setShowProModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { auth, setOnClearMessages } = useAuth();
+  const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const isOnline = useOfflineStatus();
-
-  // Register clear messages callback
-  useEffect(() => {
-    setOnClearMessages(() => setMessages([]));
-  }, [setOnClearMessages]);
 
   // Anti-tamper: Disable right-click and F12
   useEffect(() => {
@@ -58,10 +55,8 @@ const Index = () => {
       if (e.ctrlKey && !e.shiftKey && !e.metaKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         if (isAdminAuthenticated) {
-          // Already authenticated, toggle panel directly
           setShowAdminPanel(prev => !prev);
         } else {
-          // Show password modal
           setShowAdminPassword(true);
         }
         return;
@@ -226,14 +221,18 @@ const Index = () => {
     }
   };
 
-  // Show lock screen if not authenticated
-  if (!auth.isAuthenticated) {
-    return <LockScreen />;
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // Show expired screen if license expired
-  if (auth.isExpired) {
-    return <ExpiredScreen userName={auth.userName} />;
+  // Show auth screen if not logged in
+  if (!user) {
+    return <AuthScreen />;
   }
 
   return (
@@ -242,6 +241,40 @@ const Index = () => {
       <CustomizationPanel />
       <Header />
       <PanicButton />
+      
+      {/* Pro Status Badge */}
+      <div className="absolute top-4 right-16 z-40 flex items-center gap-2">
+        {isPro ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+            <Crown className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-medium text-amber-400">
+              {isLifetimePro ? "Lifetime Pro" : `Pro (${daysRemaining} dana)`}
+            </span>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowProModal(true)}
+            className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+          >
+            <Crown className="w-4 h-4 mr-1" />
+            Upgrade
+          </Button>
+        )}
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={signOut}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <LogOut className="w-4 h-4" />
+        </Button>
+      </div>
+      
+      {/* Pro Upgrade Modal */}
+      <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
       
       {/* Admin Password Modal */}
       <AdminPasswordModal 
@@ -328,4 +361,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Home;
