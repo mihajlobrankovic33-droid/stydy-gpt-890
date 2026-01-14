@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import "./App.css";
 
 // Theme bootstrapping (runs before React renders)
 // We reset to dark ONCE after the new "Midnight Black" theme rollout,
