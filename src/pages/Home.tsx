@@ -4,7 +4,7 @@ import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
-import { CustomizationPanel } from "@/components/CustomizationPanel";
+
 import { AdminPanel } from "@/components/AdminPanel";
 import { AdminPasswordModal } from "@/components/AdminPasswordModal";
 import { PanicButton } from "@/components/PanicButton";
@@ -19,8 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText, Loader2 } from "lucide-react";
+import { MessageCircle, FileText, Loader2, ArrowLeft } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   role: "user" | "assistant";
@@ -242,8 +243,8 @@ const Home = () => {
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
-      <Header />
-      <PanicButton />
+      {activeTab === "chat" ? <Header /> : null}
+      {activeTab === "chat" ? <PanicButton /> : null}
       
       {/* Top right: Install + Hamburger only */}
       <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
@@ -290,18 +291,20 @@ const Home = () => {
       <div className="flex-1 overflow-hidden">
         <div className="w-full h-full flex flex-col">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col">
-            <div className="px-4 pt-2">
-              <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
-                <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="puskice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Puškice
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            {activeTab === "chat" ? (
+              <div className="px-4 pt-2">
+                <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
+                  <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Chat
+                  </TabsTrigger>
+                  <TabsTrigger value="puskice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Puškice
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            ) : null}
 
             <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
               {messages.length === 0 ? (
@@ -346,19 +349,34 @@ const Home = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="puskice" className="flex-1 mt-0 overflow-auto p-4 pb-8">
-              <PuskiceSection />
+            <TabsContent
+              value="puskice"
+              className="fixed inset-0 z-30 mt-0 bg-background overflow-auto p-4 pt-20"
+            >
+              <div className="max-w-4xl mx-auto">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("chat")}
+                  className="mb-4"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Nazad
+                </Button>
+                <PuskiceSection />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
       </div>
 
       {/* Footer Branding */}
-      <div className="fixed bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-50">
-        <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide">
-          © 2026 BUM Systems | Developed by Mihajlo
-        </span>
-      </div>
+      {activeTab === "chat" ? (
+        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-50">
+          <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide">
+            © 2026 BUM Systems | Developed by Mihajlo
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 };
