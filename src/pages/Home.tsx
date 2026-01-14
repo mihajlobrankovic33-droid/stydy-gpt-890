@@ -10,6 +10,7 @@ import { AdminPasswordModal } from "@/components/AdminPasswordModal";
 
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
+import { DirectChat } from "@/components/DirectChat";
 import { AuthScreen } from "@/components/AuthScreen";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { HamburgerMenu } from "@/components/HamburgerMenu";
@@ -19,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText, Loader2, ArrowLeft } from "lucide-react";
+import { MessageCircle, FileText, Loader2, ArrowLeft, Users } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
@@ -37,7 +38,7 @@ const Home = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
-  const [activeTab, setActiveTab] = useState<"chat" | "puskice">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "puskice" | "messages">("chat");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -293,17 +294,21 @@ const Home = () => {
       {/* Main content with tabs */}
       <div className="flex-1 overflow-hidden min-h-0">
         <div className="w-full h-full flex flex-col min-h-0">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice" | "messages")} className="flex-1 flex flex-col min-h-0">
             {activeTab === "chat" ? (
               <div className="px-4 pt-2">
-                <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/50">
                   <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Chat
+                    <MessageCircle className="w-4 h-4 mr-1.5" />
+                    <span className="hidden sm:inline">AI </span>Chat
                   </TabsTrigger>
                   <TabsTrigger value="puskice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <FileText className="w-4 h-4 mr-2" />
+                    <FileText className="w-4 h-4 mr-1.5" />
                     Puškice
+                  </TabsTrigger>
+                  <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Users className="w-4 h-4 mr-1.5" />
+                    Poruke
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -369,6 +374,23 @@ const Home = () => {
                   Nazad
                 </Button>
                 <PuskiceSection />
+              </div>
+            </TabsContent>
+
+            <TabsContent
+              value="messages"
+              className="flex-1 mt-0 bg-background overflow-auto p-4 pt-20"
+            >
+              <div className="max-w-4xl mx-auto">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("chat")}
+                  className="mb-4"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Nazad
+                </Button>
+                <DirectChat />
               </div>
             </TabsContent>
           </Tabs>
