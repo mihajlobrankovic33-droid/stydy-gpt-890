@@ -35,6 +35,7 @@ const Home = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
+  const [activeTab, setActiveTab] = useState<"chat" | "puskice">("chat");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -304,8 +305,8 @@ const Home = () => {
       
       {/* Main content with tabs */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <Tabs defaultValue="chat" className="flex-1 flex flex-col">
+        <div className={`${activeTab === "puskice" ? "w-full" : "max-w-4xl mx-auto"} h-full flex flex-col`}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col">
             <div className="px-4 pt-2">
               <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
                 <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
