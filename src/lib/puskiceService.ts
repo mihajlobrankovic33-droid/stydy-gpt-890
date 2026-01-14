@@ -13,6 +13,7 @@ export interface PuskiceItem {
   id: string;
   title: string;
   content: string;
+  imageUrl?: string;
   createdAt: string;
 }
 
@@ -58,7 +59,7 @@ export function getAllPuskice(): PuskiceItem[] {
   return getData().items;
 }
 
-export function createPuskica(title: string, content: string, isAdmin: boolean = false): { success: boolean; item?: PuskiceItem } {
+export function createPuskica(title: string, content: string, imageUrl?: string, isAdmin: boolean = false): { success: boolean; item?: PuskiceItem } {
   const data = getData();
   
   // Admin bypasses daily limit
@@ -70,6 +71,7 @@ export function createPuskica(title: string, content: string, isAdmin: boolean =
     id: crypto.randomUUID(),
     title,
     content,
+    imageUrl,
     createdAt: new Date().toISOString(),
   };
   
@@ -83,7 +85,7 @@ export function createPuskica(title: string, content: string, isAdmin: boolean =
   return { success: true, item: newItem };
 }
 
-export function updatePuskica(id: string, title: string, content: string): boolean {
+export function updatePuskica(id: string, title: string, content: string, imageUrl?: string): boolean {
   const data = getData();
   const index = data.items.findIndex(item => item.id === id);
   
@@ -93,6 +95,7 @@ export function updatePuskica(id: string, title: string, content: string): boole
     ...data.items[index],
     title,
     content,
+    imageUrl: imageUrl !== undefined ? imageUrl : data.items[index].imageUrl,
   };
   saveData(data);
   return true;
