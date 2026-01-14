@@ -12,12 +12,13 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
 import { AuthScreen } from "@/components/AuthScreen";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { ProfileSettings } from "@/components/ProfileSettings";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText, Crown, LogOut, Loader2 } from "lucide-react";
+import { MessageCircle, FileText, Crown, LogOut, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Message {
@@ -38,6 +39,7 @@ const Home = () => {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
@@ -266,12 +268,26 @@ const Home = () => {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => setShowProfileSettings(true)}
+          className="text-muted-foreground hover:text-foreground"
+          title="Uredi profil"
+        >
+          <User className="w-4 h-4" />
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={signOut}
           className="text-muted-foreground hover:text-foreground"
+          title="Odjavi se"
         >
           <LogOut className="w-4 h-4" />
         </Button>
       </div>
+      
+      {/* Profile Settings Modal */}
+      <ProfileSettings isOpen={showProfileSettings} onClose={() => setShowProfileSettings(false)} />
       
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
