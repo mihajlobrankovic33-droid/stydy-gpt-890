@@ -19,8 +19,7 @@ import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
@@ -244,11 +243,52 @@ const Home = () => {
     return <AuthScreen />;
   }
 
+  // Fullscreen Puskice view
+  if (activeTab === "puskice") {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        <div className="flex items-center gap-2 p-4 border-b border-border">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setActiveTab("chat")}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-bold">Moje Puškice</h1>
+        </div>
+        <div className="flex-1 overflow-auto p-4">
+          <PuskiceSection />
+        </div>
+      </div>
+    );
+  }
+
+  // Fullscreen Messages view
+  if (activeTab === "messages") {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        <div className="flex items-center gap-2 p-4 border-b border-border">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setActiveTab("chat")}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-bold">Poruke</h1>
+        </div>
+        <div className="flex-1 min-h-0 overflow-hidden p-4">
+          <DirectChat />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
-      {activeTab === "chat" ? <Header /> : null}
-      
+      <Header />
       
       {/* Top right: Install + Hamburger only */}
       <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
@@ -262,7 +302,6 @@ const Home = () => {
             if (messages.length === 0) {
               toast({ title: "Istorija ćeta", description: "Nema poruka u istoriji." });
             } else {
-              setActiveTab("chat");
               toast({ title: "Istorija ćeta", description: `Imate ${messages.length} poruka u ovoj sesiji.` });
             }
           }}
@@ -293,108 +332,50 @@ const Home = () => {
       {/* Admin Panel */}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
       
-      {/* Main content with tabs */}
-      <div className="flex-1 overflow-hidden min-h-0">
-        <div className="w-full h-full flex flex-col min-h-0">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice" | "messages")} className="flex-1 flex flex-col min-h-0">
-            {activeTab === "chat" && (
-              <div className="px-4 pt-2">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-1 bg-muted/50">
-                  <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    <span className="hidden sm:inline">AI </span>Chat
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            )}
+      {/* Main chat content */}
+      <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+        {messages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl mx-auto">
+              <WelcomeMessage />
+            </div>
+          </div>
+        ) : (
+          <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+            <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
+              {messages.map((message, index) => (
+                <ChatMessage key={index} message={message} />
+              ))}
+              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                <TypingIndicator />
+              )}
+              <div ref={bottomRef} />
+            </div>
+          </ScrollArea>
+        )}
 
-            <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
-              <div className="flex-1 flex flex-col min-h-0">
-                {messages.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center p-4">
-                    <div className="w-full max-w-4xl mx-auto">
-                      <WelcomeMessage />
-                    </div>
-                  </div>
-                ) : (
-                  <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
-                    <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
-                      {messages.map((message, index) => (
-                        <ChatMessage key={index} message={message} />
-                      ))}
-                      {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                        <TypingIndicator />
-                      )}
-                      <div ref={bottomRef} />
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
-
-              {/* Input area - fixed at bottom, never covers content */}
-              <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
-                <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-3 space-y-2 sm:space-y-3">
-                  {/* Action indicator */}
-                  {currentAction && (
-                    <div className="flex items-center justify-center">
-                      <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
-                        currentAction === "exam" 
-                          ? "bg-red-500/20 text-red-400 border border-red-500/30" 
-                          : "bg-primary/10 text-primary border border-primary/30"
-                      }`}>
-                        {getActionTitle(currentAction)}
-                        <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <QuickActions onAction={handleQuickAction} disabled={isLoading} />
-                  <ChatInput onSend={handleSend} disabled={isLoading} />
+        {/* Input area - fixed at bottom, never covers content */}
+        <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
+          <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-3 space-y-2 sm:space-y-3">
+            {/* Action indicator */}
+            {currentAction && (
+              <div className="flex items-center justify-center">
+                <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
+                  currentAction === "exam" 
+                    ? "bg-red-500/20 text-red-400 border border-red-500/30" 
+                    : "bg-primary/10 text-primary border border-primary/30"
+                }`}>
+                  {getActionTitle(currentAction)}
+                  <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent
-              value="puskice"
-              className="fixed inset-0 z-50 bg-background overflow-auto flex flex-col"
-            >
-              <div className="p-4 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  onClick={() => setActiveTab("chat")}
-                  className="mb-4"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Nazad
-                </Button>
-              </div>
-              <div className="flex-1 overflow-auto px-4 pb-4">
-                <PuskiceSection />
-              </div>
-            </TabsContent>
-
-            <TabsContent
-              value="messages"
-              className="fixed inset-0 z-50 bg-background flex flex-col"
-            >
-              <div className="p-4 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  onClick={() => setActiveTab("chat")}
-                  className="mb-2"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Nazad
-                </Button>
-              </div>
-              <div className="flex-1 min-h-0 overflow-hidden px-4 pb-4">
-                <DirectChat />
-              </div>
-            </TabsContent>
-          </Tabs>
+            )}
+            
+            <QuickActions onAction={handleQuickAction} disabled={isLoading} />
+            <ChatInput onSend={handleSend} disabled={isLoading} />
+          </div>
         </div>
       </div>
-
     </div>
   );
 };
