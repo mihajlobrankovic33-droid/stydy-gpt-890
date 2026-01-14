@@ -13,7 +13,6 @@ interface PuskiceItem {
   id: string;
   title: string;
   content: string;
-  image_url?: string;
   subject?: string;
   created_at: string;
 }
@@ -29,7 +28,6 @@ export function PuskiceSection() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showQuickView, setShowQuickView] = useState<PuskiceItem | null>(null);
-  const [showFullscreenImage, setShowFullscreenImage] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -37,13 +35,44 @@ export function PuskiceSection() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Compress image client-side for speed (smaller upload to AI)
+  const compressImageToDataUrl = (file: File, maxSide = 1280, quality = 0.82): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const longest = Math.max(img.width, img.height);
+          const scale = longest > maxSide ? maxSide / longest : 1;
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas not supported");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          URL.revokeObjectURL(objectUrl);
+          resolve(dataUrl);
+        } catch (e) {
+          URL.revokeObjectURL(objectUrl);
+          reject(e);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Image load failed"));
+      };
+      img.src = objectUrl;
+    });
+  };
+
   // Fetch puskice from database
   const fetchPuskice = async () => {
     if (!user) return;
 
     const { data, error } = await supabase
       .from("puskice")
-      .select("*")
+      .select("id,title,content,subject,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -86,9 +115,15 @@ export function PuskiceSection() {
     setShowCreateModal(true);
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const compressed = await compressImageToDataUrl(file);
+      setImageUrl(compressed);
+    } catch {
+      // Fallback to raw FileReader
       const reader = new FileReader();
       reader.onload = (event) => {
         setImageUrl(event.target?.result as string);
@@ -147,12 +182,11 @@ export function PuskiceSection() {
         throw new Error(result.error || "Ekstrakcija nije uspjela");
       }
 
-      // Save to database
+      // Save to database (do NOT store image/base64 in DB)
       const { error: insertError } = await supabase.from("puskice").insert({
         user_id: user.id,
         title: subject.trim(),
         content: result.content,
-        image_url: imageUrl,
         subject: subject.trim(),
       });
 
@@ -371,16 +405,7 @@ export function PuskiceSection() {
                     <Eye className="w-4 h-4 mr-1" />
                     Pogledaj
                   </Button>
-                  {item.image_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowFullscreenImage(item.image_url!)}
-                      className="border-accent/30 text-accent hover:bg-accent/10"
-                    >
-                      <Image className="w-4 h-4" />
-                    </Button>
-                  )}
+                  {/* Image is intentionally not stored in DB */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -417,19 +442,6 @@ export function PuskiceSection() {
         }
       >
         <div className="space-y-4">
-          {showQuickView?.image_url && (
-            <button
-              type="button"
-              className="w-full"
-              onClick={() => setShowFullscreenImage(showQuickView.image_url!)}
-            >
-              <img
-                src={showQuickView.image_url}
-                alt={`Slika za: ${showQuickView.title}`}
-                className="w-full max-h-[45vh] object-contain rounded-lg border border-border bg-muted/30"
-              />
-            </button>
-          )}
           <div className="p-4 rounded-lg bg-muted/50 border border-border">
             <p className="text-foreground whitespace-pre-wrap leading-relaxed">
               {showQuickView?.content}
@@ -437,30 +449,6 @@ export function PuskiceSection() {
           </div>
         </div>
       </FullscreenModal>
-
-      {/* Fullscreen Image Modal */}
-      {showFullscreenImage && (
-        <div
-          className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
-          onClick={() => setShowFullscreenImage(null)}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
-            onClick={() => setShowFullscreenImage(null)}
-          >
-            <X className="w-6 h-6" />
-          </Button>
-          <img
-            src={showFullscreenImage}
-            alt="Fullscreen"
-            className="max-w-full max-h-full object-contain p-4"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
     </div>

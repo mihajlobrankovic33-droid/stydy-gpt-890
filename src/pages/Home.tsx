@@ -44,6 +44,7 @@ const Home = () => {
   const [showProModal, setShowProModal] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const isOnline = useOfflineStatus();
@@ -98,20 +99,12 @@ const Home = () => {
     setShowAdminPanel(true);
   };
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (robust for streaming + mobile)
   useEffect(() => {
-    const scrollToBottom = () => {
-      if (scrollRef.current) {
-        const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }
-      }
-    };
-    
-    // Small delay to ensure content is rendered
-    const timeoutId = setTimeout(scrollToBottom, 50);
-    return () => clearTimeout(timeoutId);
+    const id = requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages, isLoading]);
 
   const streamChat = async (newMessages: Message[], actionType?: ActionType) => {
@@ -298,9 +291,9 @@ const Home = () => {
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
       
       {/* Main content with tabs */}
-      <div className="flex-1 overflow-hidden">
-        <div className="w-full h-full flex flex-col">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col">
+      <div className="flex-1 overflow-hidden min-h-0">
+        <div className="w-full h-full flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col min-h-0">
             {activeTab === "chat" ? (
               <div className="px-4 pt-2">
                 <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
@@ -316,7 +309,7 @@ const Home = () => {
               </div>
             ) : null}
 
-            <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
+            <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
               <div className="flex-1 flex flex-col min-h-0">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center p-4">
@@ -333,6 +326,7 @@ const Home = () => {
                       {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                         <TypingIndicator />
                       )}
+                      <div ref={bottomRef} />
                     </div>
                   </ScrollArea>
                 )}
@@ -363,7 +357,7 @@ const Home = () => {
 
             <TabsContent
               value="puskice"
-              className="fixed inset-0 z-30 mt-0 bg-background overflow-auto p-4 pt-20"
+              className="flex-1 mt-0 bg-background overflow-auto p-4 pt-20"
             >
               <div className="max-w-4xl mx-auto">
                 <Button
