@@ -12,13 +12,14 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
 import { AuthScreen } from "@/components/AuthScreen";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { HamburgerMenu } from "@/components/HamburgerMenu";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText, Crown, LogOut, Loader2, User } from "lucide-react";
+import { MessageCircle, FileText, Crown, LogOut, Loader2, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Message {
@@ -245,46 +246,12 @@ const Home = () => {
       <Header />
       <PanicButton />
       
-      {/* Pro Status Badge */}
-      <div className="absolute top-4 right-16 z-40 flex items-center gap-2">
-        {isPro ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-            <Crown className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-medium text-amber-400">
-              {isLifetimePro ? "Lifetime Pro" : `Pro (${daysRemaining} dana)`}
-            </span>
-          </div>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowProModal(true)}
-            className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-          >
-            <Crown className="w-4 h-4 mr-1" />
-            Upgrade
-          </Button>
-        )}
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowProfileSettings(true)}
-          className="text-muted-foreground hover:text-foreground"
-          title="Uredi profil"
-        >
-          <User className="w-4 h-4" />
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={signOut}
-          className="text-muted-foreground hover:text-foreground"
-          title="Odjavi se"
-        >
-          <LogOut className="w-4 h-4" />
-        </Button>
+      {/* Hamburger Menu - top right */}
+      <div className="absolute top-4 right-4 z-40">
+        <HamburgerMenu
+          onOpenProfile={() => setShowProfileSettings(true)}
+          onOpenProModal={() => setShowProModal(true)}
+        />
       </div>
       
       {/* Profile Settings Modal */}
