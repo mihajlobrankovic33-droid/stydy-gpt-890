@@ -20,7 +20,6 @@ import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageCircle, FileText, Loader2 } from "lucide-react";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 interface Message {
   role: "user" | "assistant";
@@ -246,9 +245,8 @@ const Home = () => {
       <Header />
       <PanicButton />
       
-      {/* Top right: Install + Hamburger */}
-      <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
-        <InstallPWAButton />
+      {/* Hamburger Menu - only 3 lines */}
+      <div className="absolute top-4 right-4 z-40">
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
@@ -258,6 +256,14 @@ const Home = () => {
             } else {
               setActiveTab("chat");
               toast({ title: "Istorija ćeta", description: `Imate ${messages.length} poruka u ovoj sesiji.` });
+            }
+          }}
+          onClearHistory={() => {
+            if (messages.length === 0) {
+              toast({ title: "Istorija ćeta", description: "Nema poruka za brisanje." });
+            } else {
+              setMessages([]);
+              toast({ title: "Obrisano", description: "Istorija ćeta je obrisana." });
             }
           }}
         />
