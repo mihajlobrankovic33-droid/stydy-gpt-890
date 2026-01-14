@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
@@ -9,9 +9,10 @@ interface HamburgerMenuProps {
   onOpenProfile: () => void;
   onOpenProModal: () => void;
   onOpenChatHistory: () => void;
+  onClearHistory: () => void;
 }
 
-export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory }: HamburgerMenuProps) {
+export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
@@ -59,6 +60,11 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   const handleOpenChatHistory = () => {
     setIsOpen(false);
     onOpenChatHistory();
+  };
+
+  const handleClearHistory = () => {
+    setIsOpen(false);
+    onClearHistory();
   };
 
   return (
@@ -141,6 +147,15 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
             >
               <History className="w-5 h-5 text-primary" />
               <span className="text-sm font-medium text-foreground">Istorija ćeta</span>
+            </button>
+
+            {/* Clear Chat History */}
+            <button
+              onClick={handleClearHistory}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
+            >
+              <Trash2 className="w-5 h-5 text-primary" />
+              <span className="text-sm font-medium text-foreground">Obriši istoriju</span>
             </button>
 
             {/* Check for Updates */}
