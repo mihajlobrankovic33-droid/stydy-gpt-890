@@ -252,7 +252,7 @@ export function PuskiceSection() {
 
       {/* Create Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
           <DialogHeader>
             <DialogTitle className="text-foreground">Nova Puškica</DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -336,7 +336,7 @@ export function PuskiceSection() {
 
       {/* Quick View Modal */}
       <Dialog open={!!showQuickView} onOpenChange={() => setShowQuickView(null)}>
-        <DialogContent className="sm:max-w-lg bg-card border-border max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
           <DialogHeader>
             <DialogTitle className="text-foreground pr-8">{showQuickView?.title}</DialogTitle>
           </DialogHeader>
@@ -352,7 +352,7 @@ export function PuskiceSection() {
 
       {/* Edit Modal */}
       <Dialog open={!!editingItem} onOpenChange={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); setNewImageUrl(undefined); }}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
+        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
           <DialogHeader>
             <DialogTitle className="text-foreground">Uredi Puškicu</DialogTitle>
             <DialogDescription className="text-muted-foreground">
