@@ -49,26 +49,71 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+  const translateAuthError = useCallback((message?: string) => {
+    if (!message) return "Došlo je do greške. Pokušaj ponovo.";
 
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
+    const m = message.toLowerCase();
+
+    // Email/password
+    if (m.includes("invalid login credentials")) return "Pogrešna šifra.";
+    if (m.includes("email not confirmed")) return "Email nije potvrđen. Proveri inbox.";
+    if (m.includes("user already registered")) return "Email je već registrovan.";
+    if (m.includes("password should be at least") || m.includes("at least 6")) {
+      return "Lozinka mora imati najmanje 6 karaktera.";
     }
-    return data as Profile;
+
+    // OAuth/provider setup
+    if (m.includes("provider is not enabled")) {
+      return "Google prijava nije omogućena na backendu.";
+    }
+
+    return message;
   }, []);
 
-  const refreshProfile = useCallback(async () => {
-    if (user) {
-      const profileData = await fetchProfile(user.id);
-      setProfile(profileData);
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return null;
     }
-  }, [user, fetchProfile]);
+
+    return (data as Profile) ?? null;
+  }, []);
+
+  const createProfileIfMissing = useCallback(async (userId: string, email: string | null | undefined) => {
+    const { error } = await supabase.from("profiles").insert({
+      user_id: userId,
+      email: email ?? null,
+    });
+
+    if (error) {
+      // If this fails (e.g. race condition), the next fetch will still resolve the current profile state.
+      console.warn("Error creating profile:", error);
+    }
+  }, []);
+
+  const ensureProfile = useCallback(
+    async (u: User) => {
+      const existing = await fetchProfile(u.id);
+      if (existing) return existing;
+
+      await createProfileIfMissing(u.id, u.email);
+      return await fetchProfile(u.id);
+    },
+    [fetchProfile, createProfileIfMissing]
+  );
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    const profileData = await ensureProfile(user);
+    setProfile(profileData);
+  }, [user, ensureProfile]);
 
   // Check if subscription is still active
   const checkProStatus = useCallback((profileData: Profile | null): { isPro: boolean; isLifetime: boolean; daysRemaining: number | null } => {
@@ -105,14 +150,14 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Defer profile fetch to avoid blocking
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await ensureProfile(session.user);
             setProfile(profileData);
           }, 0);
         } else {
@@ -127,13 +172,13 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
+        ensureProfile(session.user).then(setProfile);
       }
       setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [ensureProfile]);
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -146,36 +191,49 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       toast({
         title: "Greška",
-        description: error.message,
+        description: translateAuthError(error.message),
         variant: "destructive",
       });
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    
+
     if (error) {
-      return { error: error.message };
+      return { error: translateAuthError(error.message) };
     }
+
+    if (data.user) {
+      // Ensure profile exists for existing accounts too
+      await ensureProfile(data.user);
+    }
+
     return { error: null };
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
       },
     });
-    
+
     if (error) {
-      return { error: error.message };
+      return { error: translateAuthError(error.message) };
     }
+
+    // If the user is signed in immediately, create the profile right away.
+    // If not, the profile will be created on the first signed-in session.
+    if (data.session?.user) {
+      await ensureProfile(data.session.user);
+    }
+
     return { error: null };
   };
 
