@@ -251,6 +251,14 @@ const Home = () => {
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
+          onOpenChatHistory={() => {
+            if (messages.length === 0) {
+              toast({ title: "Istorija ćeta", description: "Nema poruka u istoriji." });
+            } else {
+              setActiveTab("chat");
+              toast({ title: "Istorija ćeta", description: `Imate ${messages.length} poruka u ovoj sesiji.` });
+            }
+          }}
         />
       </div>
       
