@@ -336,34 +336,34 @@ const Home = () => {
                   </div>
                 </ScrollArea>
               )}
+
+              {/* Input area - only show for chat */}
+              <div className="border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
+                <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4 space-y-2 sm:space-y-4">
+                  {/* Action indicator */}
+                  {currentAction && (
+                    <div className="flex items-center justify-center">
+                      <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
+                        currentAction === "exam" 
+                          ? "bg-red-500/20 text-red-400 border border-red-500/30" 
+                          : "bg-primary/10 text-primary border border-primary/30"
+                      }`}>
+                        {getActionTitle(currentAction)}
+                        <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <QuickActions onAction={handleQuickAction} disabled={isLoading} />
+                  <ChatInput onSend={handleSend} disabled={isLoading} />
+                </div>
+              </div>
             </TabsContent>
 
-            <TabsContent value="puskice" className="flex-1 mt-0 overflow-auto p-4">
+            <TabsContent value="puskice" className="flex-1 mt-0 overflow-auto p-4 pb-8">
               <PuskiceSection />
             </TabsContent>
           </Tabs>
-        </div>
-      </div>
-
-      {/* Input area - only show for chat */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
-        <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4 space-y-2 sm:space-y-4">
-          {/* Action indicator */}
-          {currentAction && (
-            <div className="flex items-center justify-center">
-              <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
-                currentAction === "exam" 
-                  ? "bg-red-500/20 text-red-400 border border-red-500/30" 
-                  : "bg-primary/10 text-primary border border-primary/30"
-              }`}>
-                {getActionTitle(currentAction)}
-                <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
-              </div>
-            </div>
-          )}
-          
-          <QuickActions onAction={handleQuickAction} disabled={isLoading} />
-          <ChatInput onSend={handleSend} disabled={isLoading} />
         </div>
       </div>
 
