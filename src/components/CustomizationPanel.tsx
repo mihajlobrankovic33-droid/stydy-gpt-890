@@ -78,14 +78,9 @@ export const CustomizationPanel = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
+      {/* Hidden trigger - opened programmatically from ProfileSettings */}
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <button className="hidden" aria-hidden="true" />
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
