@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Camera, User, X } from "lucide-react";
+import { Loader2, Camera, User, X, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProfileSettingsProps {
@@ -22,6 +22,31 @@ export const ProfileSettings = ({ isOpen, onClose }: ProfileSettingsProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const handleCheckForUpdates = useCallback(async () => {
+    setIsCheckingUpdate(true);
+    toast({ title: "Provera ažuriranja…", description: "Molimo sačekaj." });
+
+    try {
+      // Try to update the service worker registration
+      const registrations = await navigator.serviceWorker?.getRegistrations();
+      if (registrations && registrations.length > 0) {
+        await Promise.all(registrations.map((r) => r.update()));
+      }
+
+      // After a short delay, force a full page reload (bypass cache)
+      await new Promise((r) => setTimeout(r, 600));
+      window.location.reload();
+    } catch (err) {
+      toast({
+        title: "Greška",
+        description: "Nije moguće proveriti ažuriranje. Probaj ponovo.",
+        variant: "destructive",
+      });
+      setIsCheckingUpdate(false);
+    }
+  }, [toast]);
 
   if (!isOpen || !user) return null;
 
@@ -160,6 +185,26 @@ export const ProfileSettings = ({ isOpen, onClose }: ProfileSettingsProps) => {
               maxLength={50}
             />
           </div>
+        </div>
+
+        {/* Check for Updates */}
+        <div className="mb-6">
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={handleCheckForUpdates}
+            disabled={isCheckingUpdate}
+          >
+            {isCheckingUpdate ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Proveri ažuriranje
+          </Button>
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">
+            Ručno osvežava aplikaciju i učitava najnoviju verziju.
+          </p>
         </div>
 
         {/* Actions */}
