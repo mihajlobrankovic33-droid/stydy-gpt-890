@@ -62,7 +62,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "system",
@@ -84,8 +84,8 @@ serve(async (req) => {
             ],
           },
         ],
-        max_tokens: 2000,
-        temperature: 0.3,
+        max_tokens: 900,
+        temperature: 0.2,
       }),
     });
 
