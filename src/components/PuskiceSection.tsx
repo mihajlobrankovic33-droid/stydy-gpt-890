@@ -3,13 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { ProUpgradeModal } from "./ProUpgradeModal";
 import {
   canCreatePuskica,
@@ -21,6 +14,7 @@ import {
   PuskiceItem,
 } from "@/lib/puskiceService";
 import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Pencil, Image, X } from "lucide-react";
+import { FullscreenModal } from "@/components/FullscreenModal";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 
@@ -42,9 +36,16 @@ export function PuskiceSection() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    setPuskice(getAllPuskice());
+  const refresh = () => {
+    const items = [...getAllPuskice()].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    setPuskice(items);
     setRemaining(getRemainingToday());
+  };
+
+  useEffect(() => {
+    refresh();
   }, []);
 
   const handleCreate = () => {
@@ -87,8 +88,7 @@ export function PuskiceSection() {
       return;
     }
 
-    setPuskice(getAllPuskice());
-    setRemaining(getRemainingToday());
+    refresh();
     setNewTitle("");
     setNewContent("");
     setNewImageUrl(undefined);
@@ -122,7 +122,7 @@ export function PuskiceSection() {
     const success = updatePuskica(editingItem.id, newTitle.trim(), newContent.trim(), newImageUrl);
     
     if (success) {
-      setPuskice(getAllPuskice());
+      refresh();
       setEditingItem(null);
       setNewTitle("");
       setNewContent("");
@@ -136,7 +136,7 @@ export function PuskiceSection() {
 
   const handleDelete = (id: string) => {
     deletePuskica(id);
-    setPuskice(getAllPuskice());
+    refresh();
     toast({
       title: "Obrisano",
       description: "Puškica je obrisana.",
@@ -250,182 +250,199 @@ export function PuskiceSection() {
         </div>
       )}
 
-      {/* Create Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Nova Puškica</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Kreiraj novu puškicu za brzo ponavljanje.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Input
-                placeholder="Naslov (npr. Matematika - Formule)"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            <div>
-              <Textarea
-                placeholder="Sadržaj puškice..."
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                rows={6}
-                className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
-              />
-            </div>
-            {/* Image Upload */}
-            <div>
-              <input
-                type="file"
-                accept="image/*"
-                ref={imageInputRef}
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              {newImageUrl ? (
-                <div className="relative">
-                  <img 
-                    src={newImageUrl} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover rounded-lg border border-border"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 w-6 h-6"
-                    onClick={() => setNewImageUrl(undefined)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-dashed border-2 h-20"
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  <Image className="w-5 h-5 mr-2" />
-                  Dodaj sliku
-                </Button>
-              )}
-            </div>
-          </div>
+      {/* Shared hidden image picker (works for Create + Edit) */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={imageInputRef}
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+
+      {/* Create - Fullscreen */}
+      <FullscreenModal
+        open={showCreateModal}
+        title="Nova Puškica"
+        description="Kreiraj novu puškicu za brzo ponavljanje."
+        onClose={() => setShowCreateModal(false)}
+        footer={
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowCreateModal(false)}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1">
               Odustani
             </Button>
-            <Button
-              onClick={handleSave}
-              className="flex-1 bg-gradient-to-r from-primary to-accent text-white"
-            >
+            <Button onClick={handleSave} className="flex-1">
               Spremi
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            placeholder="Naslov (npr. Matematika - Formule)"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+          />
 
-      {/* Quick View Modal */}
-      <Dialog open={!!showQuickView} onOpenChange={() => setShowQuickView(null)}>
-        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
-          <DialogHeader>
-            <DialogTitle className="text-foreground pr-8">{showQuickView?.title}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="p-4 rounded-lg bg-muted/50 border border-border">
-              <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-                {showQuickView?.content}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <Textarea
+            placeholder="Sadržaj puškice..."
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            rows={10}
+            className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
+          />
 
-      {/* Edit Modal */}
-      <Dialog open={!!editingItem} onOpenChange={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); setNewImageUrl(undefined); }}>
-        <DialogContent className="bg-card border-border w-[100dvw] h-[100dvh] max-w-none p-4 sm:p-6 overflow-y-auto sm:rounded-none">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Uredi Puškicu</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Izmijeni naslov ili sadržaj puškice.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Input
-                placeholder="Naslov (npr. Matematika - Formule)"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-            <div>
-              <Textarea
-                placeholder="Sadržaj puškice..."
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                rows={6}
-                className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
-              />
-            </div>
-            {/* Image Upload for Edit */}
-            <div>
-              {newImageUrl ? (
-                <div className="relative">
-                  <img 
-                    src={newImageUrl} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover rounded-lg border border-border"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 w-6 h-6"
-                    onClick={() => setNewImageUrl(undefined)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
+          {/* Image Upload */}
+          <div>
+            {newImageUrl ? (
+              <div className="relative">
+                <img
+                  src={newImageUrl}
+                  alt="Preview"
+                  className="w-full max-h-[40vh] object-contain rounded-lg border border-border bg-muted/30"
+                  loading="lazy"
+                />
                 <Button
                   type="button"
-                  variant="outline"
-                  className="w-full border-dashed border-2 h-20"
-                  onClick={() => imageInputRef.current?.click()}
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => setNewImageUrl(undefined)}
                 >
-                  <Image className="w-5 h-5 mr-2" />
-                  Dodaj sliku
+                  <X className="w-4 h-4" />
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed border-2 h-20"
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <Image className="w-5 h-5 mr-2" />
+                Dodaj sliku
+              </Button>
+            )}
           </div>
+        </div>
+      </FullscreenModal>
+
+      {/* Quick View - Fullscreen */}
+      <FullscreenModal
+        open={!!showQuickView}
+        title={showQuickView?.title ?? "Puškica"}
+        onClose={() => setShowQuickView(null)}
+        footer={
+          <Button variant="outline" onClick={() => setShowQuickView(null)} className="w-full">
+            Zatvori
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          {showQuickView?.imageUrl ? (
+            <button
+              type="button"
+              className="w-full"
+              onClick={() => setShowFullscreenImage(showQuickView.imageUrl!)}
+              aria-label="Otvori sliku preko cijelog ekrana"
+              title="Otvori sliku"
+            >
+              <img
+                src={showQuickView.imageUrl}
+                alt={`Slika za: ${showQuickView.title}`}
+                className="w-full max-h-[45vh] object-contain rounded-lg border border-border bg-muted/30"
+                loading="lazy"
+              />
+            </button>
+          ) : null}
+
+          <div className="p-4 rounded-lg bg-muted/50 border border-border">
+            <p className="text-foreground whitespace-pre-wrap leading-relaxed">{showQuickView?.content}</p>
+          </div>
+        </div>
+      </FullscreenModal>
+
+      {/* Edit - Fullscreen */}
+      <FullscreenModal
+        open={!!editingItem}
+        title="Uredi Puškicu"
+        description="Izmijeni naslov, sadržaj ili sliku puškice."
+        onClose={() => {
+          setEditingItem(null);
+          setNewTitle("");
+          setNewContent("");
+          setNewImageUrl(undefined);
+        }}
+        footer={
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); setNewImageUrl(undefined); }}
+              onClick={() => {
+                setEditingItem(null);
+                setNewTitle("");
+                setNewContent("");
+                setNewImageUrl(undefined);
+              }}
               className="flex-1"
             >
               Odustani
             </Button>
-            <Button
-              onClick={handleUpdate}
-              className="flex-1 bg-gradient-to-r from-primary to-accent text-white"
-            >
+            <Button onClick={handleUpdate} className="flex-1">
               Spremi Izmjene
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            placeholder="Naslov (npr. Matematika - Formule)"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+          />
+
+          <Textarea
+            placeholder="Sadržaj puškice..."
+            value={newContent}
+            onChange={(e) => setNewContent(e.target.value)}
+            rows={10}
+            className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
+          />
+
+          {/* Image Upload */}
+          <div>
+            {newImageUrl ? (
+              <div className="relative">
+                <img
+                  src={newImageUrl}
+                  alt="Preview"
+                  className="w-full max-h-[40vh] object-contain rounded-lg border border-border bg-muted/30"
+                  loading="lazy"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => setNewImageUrl(undefined)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-dashed border-2 h-20"
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <Image className="w-5 h-5 mr-2" />
+                Dodaj sliku
+              </Button>
+            )}
+          </div>
+        </div>
+      </FullscreenModal>
 
       {/* Fullscreen Image Modal */}
       {showFullscreenImage && (
