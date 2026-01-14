@@ -19,7 +19,7 @@ import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, ArrowLeft, MessageCircle, FileText, Users } from "lucide-react";
+import { Loader2, ArrowLeft, MessageCircle, FileText } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
