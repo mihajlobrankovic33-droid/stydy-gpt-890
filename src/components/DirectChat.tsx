@@ -442,7 +442,7 @@ export function DirectChat() {
 
   // Chat view
   return (
-    <div className="flex flex-col h-[70vh]">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 pb-3 border-b border-border">
         <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
