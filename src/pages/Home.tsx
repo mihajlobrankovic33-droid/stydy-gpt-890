@@ -305,7 +305,7 @@ const Home = () => {
       
       {/* Main content with tabs */}
       <div className="flex-1 overflow-hidden">
-        <div className={`${activeTab === "puskice" ? "w-full" : "max-w-4xl mx-auto"} h-full flex flex-col`}>
+        <div className="w-full h-full flex flex-col">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice")} className="flex-1 flex flex-col">
             <div className="px-4 pt-2">
               <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-muted/50">
@@ -323,11 +323,13 @@ const Home = () => {
             <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
               {messages.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center p-4">
-                  <WelcomeMessage />
+                  <div className="w-full max-w-4xl mx-auto">
+                    <WelcomeMessage />
+                  </div>
                 </div>
               ) : (
                 <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-                  <div className="space-y-4 pb-4">
+                  <div className="w-full max-w-4xl mx-auto space-y-4 pb-4">
                     {messages.map((message, index) => (
                       <ChatMessage key={index} message={message} />
                     ))}
