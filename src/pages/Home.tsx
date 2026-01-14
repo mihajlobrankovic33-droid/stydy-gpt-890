@@ -7,7 +7,7 @@ import { WelcomeMessage } from "@/components/WelcomeMessage";
 
 import { AdminPanel } from "@/components/AdminPanel";
 import { AdminPasswordModal } from "@/components/AdminPasswordModal";
-import { PanicButton } from "@/components/PanicButton";
+
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
 import { AuthScreen } from "@/components/AuthScreen";
@@ -244,7 +244,7 @@ const Home = () => {
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
       {activeTab === "chat" ? <Header /> : null}
-      {activeTab === "chat" ? <PanicButton /> : null}
+      
       
       {/* Top right: Install + Hamburger only */}
       <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
