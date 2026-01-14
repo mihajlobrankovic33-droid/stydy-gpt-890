@@ -1,6 +1,4 @@
 import { useCustomization } from "@/context/CustomizationContext";
-import { InstallPWAButton } from "@/components/InstallPWAButton";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Header = () => {
   const { getAvatarUrl, currentTheme } = useCustomization();
@@ -14,7 +12,7 @@ export const Header = () => {
   return (
     <header className="bg-card border-b border-border shadow-soft">
       <div className="max-w-4xl mx-auto px-3 py-3 sm:px-4 sm:py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-glow border-2 border-primary/20">
@@ -33,10 +31,6 @@ export const Header = () => {
                 {currentTheme.appTagline}
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <ThemeToggle />
-            <InstallPWAButton />
           </div>
         </div>
       </div>
