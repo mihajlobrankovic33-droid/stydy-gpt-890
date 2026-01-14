@@ -356,9 +356,9 @@ const Home = () => {
 
             <TabsContent
               value="puskice"
-              className="fixed inset-0 z-50 bg-background overflow-auto"
+              className="fixed inset-0 z-50 bg-background overflow-auto flex flex-col"
             >
-              <div className="p-4">
+              <div className="p-4 flex-shrink-0">
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab("chat")}
@@ -367,26 +367,28 @@ const Home = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Nazad
                 </Button>
+              </div>
+              <div className="flex-1 overflow-auto px-4 pb-4">
                 <PuskiceSection />
               </div>
             </TabsContent>
 
             <TabsContent
               value="messages"
-              className="fixed inset-0 z-50 bg-background overflow-auto"
+              className="fixed inset-0 z-50 bg-background flex flex-col"
             >
-              <div className="p-4 h-full flex flex-col">
+              <div className="p-4 flex-shrink-0">
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab("chat")}
-                  className="mb-4 self-start"
+                  className="mb-2"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Nazad
                 </Button>
-                <div className="flex-1 min-h-0">
-                  <DirectChat />
-                </div>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden px-4 pb-4">
+                <DirectChat />
               </div>
             </TabsContent>
           </Tabs>
