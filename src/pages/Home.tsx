@@ -375,14 +375,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Footer Branding */}
-      {activeTab === "chat" ? (
-        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-50">
-          <span className="text-[10px] font-medium text-muted-foreground/60 tracking-wide">
-            © 2026 BUM Systems | Developed by Mihajlo
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 };
