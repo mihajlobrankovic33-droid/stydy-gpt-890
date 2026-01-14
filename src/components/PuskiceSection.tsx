@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProUpgradeModal } from "./ProUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Image, X, Loader2, Upload, BookOpen } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, Sparkles, Shield, X, Loader2, Upload, BookOpen } from "lucide-react";
 import { FullscreenModal } from "@/components/FullscreenModal";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
