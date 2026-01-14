@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Check, Crown, Sparkles, Zap, Palette, Headphones, CreditCard, Loader2, CheckCircle2, ArrowLeft, Key } from "lucide-react";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProUpgradeModalProps {
   open: boolean;
@@ -27,8 +28,18 @@ const benefits = [
 
 type ModalView = "plan" | "payment" | "processing" | "success" | "redeem";
 
+// Generate a unique device ID
+function getDeviceId(): string {
+  let deviceId = localStorage.getItem("device_id");
+  if (!deviceId) {
+    deviceId = "dev_" + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    localStorage.setItem("device_id", deviceId);
+  }
+  return deviceId;
+}
+
 export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
-  const { activateProWithCode, activateProWithPayment } = useSupabaseAuth();
+  const { activateProWithPayment, refreshProfile } = useSupabaseAuth();
   const { toast } = useToast();
   const [view, setView] = useState<ModalView>("plan");
   const [cardNumber, setCardNumber] = useState("");
@@ -37,6 +48,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
   const [cardHolder, setCardHolder] = useState("");
   const [redeemCode, setRedeemCode] = useState("");
   const [redeemError, setRedeemError] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleClose = () => {
     setView("plan");
@@ -74,16 +86,56 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
   };
 
   const handleRedeemCode = async () => {
-    const result = await activateProWithCode(redeemCode);
+    if (!redeemCode.trim()) return;
     
-    if (result.success) {
+    setIsRedeeming(true);
+    setRedeemError("");
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setRedeemError("Morate biti prijavljeni");
+        setIsRedeeming(false);
+        return;
+      }
+
+      const deviceId = getDeviceId();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redeem-pro-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            code: redeemCode.trim(),
+            deviceId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRedeemError(data.error || "Greška pri aktivaciji koda");
+        setIsRedeeming(false);
+        return;
+      }
+
+      // Refresh the profile to get updated Pro status
+      await refreshProfile();
+
       toast({
         title: "🎉 Pro Aktiviran!",
-        description: "Permanentni Pro pristup je odobren.",
+        description: data.message || "Pro pristup je odobren.",
       });
       handleClose();
-    } else {
-      setRedeemError(result.error || "Neispravan kod. Pokušaj ponovo.");
+    } catch (error) {
+      setRedeemError("Greška pri povezivanju sa serverom");
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -279,10 +331,10 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
               <div>
                 <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                   <Key className="w-5 h-5 text-amber-400" />
-                  Unesi Kod
+                  Unesi Pro Kod
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  Unesi promo ili licencni kod
+                  Unesi Pro kod da aktiviraš pristup
                 </DialogDescription>
               </div>
             </div>
@@ -290,10 +342,10 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="redeemCode">Licencni Kod</Label>
+              <Label htmlFor="redeemCode">Pro Kod</Label>
               <Input
                 id="redeemCode"
-                placeholder="XXXX-XXXX"
+                placeholder="PRO-XXXXXXXX"
                 value={redeemCode}
                 onChange={(e) => {
                   setRedeemCode(e.target.value.toUpperCase());
@@ -305,15 +357,28 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
                 <p className="text-sm text-destructive text-center">{redeemError}</p>
               )}
             </div>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              ⚠️ Svaki kod važi samo za jedan uređaj
+            </p>
           </div>
 
           <Button
             onClick={handleRedeemCode}
-            disabled={!redeemCode.trim()}
+            disabled={!redeemCode.trim() || isRedeeming}
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-6 text-lg shadow-lg shadow-amber-500/25 disabled:opacity-50"
           >
-            <Key className="w-5 h-5 mr-2" />
-            Aktiviraj Kod
+            {isRedeeming ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Aktiviram...
+              </>
+            ) : (
+              <>
+                <Key className="w-5 h-5 mr-2" />
+                Aktiviraj Kod
+              </>
+            )}
           </Button>
         </DialogContent>
       </Dialog>
@@ -388,7 +453,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
             className="w-full text-muted-foreground hover:text-foreground"
           >
             <Key className="w-4 h-4 mr-2" />
-            Imam licencni kod
+            Imam Pro kod
           </Button>
           
           <p className="text-center text-xs text-muted-foreground">

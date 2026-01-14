@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pro_codes: {
+        Row: {
+          code: string
+          created_at: string
+          duration_days: number
+          expires_at: string | null
+          id: string
+          is_used: boolean
+          used_at: string | null
+          used_by_device_id: string | null
+          used_by_user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          duration_days?: number
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          used_by_device_id?: string | null
+          used_by_user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          duration_days?: number
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          used_by_device_id?: string | null
+          used_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
