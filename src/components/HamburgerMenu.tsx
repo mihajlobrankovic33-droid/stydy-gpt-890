@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2 } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTheme } from "@/hooks/useTheme";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProCodesAdmin } from "@/components/ProCodesAdmin";
+
+const ADMIN_PASSWORD = "MIHE26";
 
 interface HamburgerMenuProps {
   onOpenProfile: () => void;
@@ -14,6 +18,10 @@ interface HamburgerMenuProps {
 
 export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const { toast } = useToast();
@@ -65,6 +73,18 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   const handleClearHistory = () => {
     setIsOpen(false);
     onClearHistory();
+  };
+
+  const handleAdminLogin = () => {
+    if (adminPasswordInput === ADMIN_PASSWORD) {
+      setShowAdminLogin(false);
+      setAdminPasswordInput("");
+      setAdminError("");
+      setIsOpen(false);
+      setShowProCodesAdmin(true);
+    } else {
+      setAdminError("Pogrešna šifra");
+    }
   };
 
   return (
@@ -167,6 +187,55 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               <span className="text-sm font-medium text-foreground">Proveri ažuriranje</span>
             </button>
 
+            {/* Admin Login */}
+            {!showAdminLogin ? (
+              <button
+                onClick={() => setShowAdminLogin(true)}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
+              >
+                <Shield className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Admin</span>
+              </button>
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-foreground">Admin Login</span>
+                </div>
+                <Input
+                  type="password"
+                  placeholder="Šifra..."
+                  value={adminPasswordInput}
+                  onChange={(e) => {
+                    setAdminPasswordInput(e.target.value);
+                    setAdminError("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
+                  className="text-center"
+                />
+                {adminError && (
+                  <p className="text-xs text-destructive text-center">{adminError}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowAdminLogin(false);
+                      setAdminPasswordInput("");
+                      setAdminError("");
+                    }}
+                    className="flex-1"
+                  >
+                    Odustani
+                  </Button>
+                  <Button size="sm" onClick={handleAdminLogin} className="flex-1">
+                    Uđi
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Sign Out */}
             <button
               onClick={handleSignOut}
@@ -185,6 +254,13 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
           </div>
         </div>
       )}
+
+      {/* Pro Codes Admin Panel */}
+      <ProCodesAdmin
+        isOpen={showProCodesAdmin}
+        onClose={() => setShowProCodesAdmin(false)}
+        adminPassword={ADMIN_PASSWORD}
+      />
     </>
   );
 }
