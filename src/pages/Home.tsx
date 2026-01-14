@@ -19,7 +19,7 @@ import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, MessageCircle, FileText, Users } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
@@ -243,48 +243,6 @@ const Home = () => {
     return <AuthScreen />;
   }
 
-  // Fullscreen Puskice view
-  if (activeTab === "puskice") {
-    return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-border">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActiveTab("chat")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-bold">Moje Puškice</h1>
-        </div>
-        <div className="flex-1 overflow-auto p-4">
-          <PuskiceSection />
-        </div>
-      </div>
-    );
-  }
-
-  // Fullscreen Messages view
-  if (activeTab === "messages") {
-    return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-border">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setActiveTab("chat")}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-bold">Poruke</h1>
-        </div>
-        <div className="flex-1 min-h-0 overflow-hidden p-4">
-          <DirectChat />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
@@ -332,49 +290,105 @@ const Home = () => {
       {/* Admin Panel */}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
       
-      {/* Main chat content */}
+      {/* Main content with tabs */}
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
-        {messages.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="w-full max-w-4xl mx-auto">
-              <WelcomeMessage />
-            </div>
-          </div>
-        ) : (
-          <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
-            <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
-              ))}
-              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <TypingIndicator />
-              )}
-              <div ref={bottomRef} />
-            </div>
-          </ScrollArea>
-        )}
-
-        {/* Input area - fixed at bottom, never covers content */}
-        <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
-          <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-3 space-y-2 sm:space-y-3">
-            {/* Action indicator */}
-            {currentAction && (
-              <div className="flex items-center justify-center">
-                <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
-                  currentAction === "exam" 
-                    ? "bg-red-500/20 text-red-400 border border-red-500/30" 
-                    : "bg-primary/10 text-primary border border-primary/30"
-                }`}>
-                  {getActionTitle(currentAction)}
-                  <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
-                </div>
-              </div>
-            )}
-            
-            <QuickActions onAction={handleQuickAction} disabled={isLoading} />
-            <ChatInput onSend={handleSend} disabled={isLoading} />
+        {/* Tab Navigation */}
+        <div className="px-4 pt-2 flex-shrink-0">
+          <div className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/50 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "chat" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">AI </span>Chat
+            </button>
+            <button
+              onClick={() => setActiveTab("puskice")}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "puskice" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Puškice
+            </button>
+            <button
+              onClick={() => setActiveTab("messages")}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "messages" 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Poruke
+            </button>
           </div>
         </div>
+
+        {/* Tab Content */}
+        {activeTab === "chat" && (
+          <div className="flex-1 flex flex-col min-h-0">
+            {messages.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <div className="w-full max-w-4xl mx-auto">
+                  <WelcomeMessage />
+                </div>
+              </div>
+            ) : (
+              <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+                <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
+                  {messages.map((message, index) => (
+                    <ChatMessage key={index} message={message} />
+                  ))}
+                  {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                    <TypingIndicator />
+                  )}
+                  <div ref={bottomRef} />
+                </div>
+              </ScrollArea>
+            )}
+
+            {/* Input area - fixed at bottom, never covers content */}
+            <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
+              <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-3 space-y-2 sm:space-y-3">
+                {/* Action indicator */}
+                {currentAction && (
+                  <div className="flex items-center justify-center">
+                    <div className={`text-xs sm:text-sm font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full animate-fade-in ${
+                      currentAction === "exam" 
+                        ? "bg-red-500/20 text-red-400 border border-red-500/30" 
+                        : "bg-primary/10 text-primary border border-primary/30"
+                    }`}>
+                      {getActionTitle(currentAction)}
+                      <span className="hidden sm:inline"> - {currentAction === "exam" ? "Send question or take a photo" : "Type your topic below"}</span>
+                    </div>
+                  </div>
+                )}
+                
+                <QuickActions onAction={handleQuickAction} disabled={isLoading} />
+                <ChatInput onSend={handleSend} disabled={isLoading} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "puskice" && (
+          <div className="flex-1 overflow-auto p-4">
+            <PuskiceSection />
+          </div>
+        )}
+
+        {activeTab === "messages" && (
+          <div className="flex-1 min-h-0 overflow-hidden p-4">
+            <DirectChat />
+          </div>
+        )}
       </div>
     </div>
   );
