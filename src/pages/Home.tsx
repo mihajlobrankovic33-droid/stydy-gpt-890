@@ -20,6 +20,7 @@ import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageCircle, FileText, Loader2 } from "lucide-react";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
 
 interface Message {
   role: "user" | "assistant";
@@ -241,12 +242,12 @@ const Home = () => {
   return (
     <div className="relative flex flex-col h-screen bg-background select-none">
       <OfflineIndicator isOnline={isOnline} />
-      <CustomizationPanel />
       <Header />
       <PanicButton />
       
-      {/* Hamburger Menu - only 3 lines */}
-      <div className="absolute top-4 right-4 z-40">
+      {/* Top right: Install + Hamburger only */}
+      <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+        <InstallPWAButton />
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
