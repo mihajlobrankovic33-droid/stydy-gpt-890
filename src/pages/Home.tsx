@@ -19,7 +19,7 @@ import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, ArrowLeft, MessageCircle, FileText } from "lucide-react";
+import { Loader2, MessageCircle, FileText, Users } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
@@ -254,8 +254,6 @@ const Home = () => {
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
-          onOpenPuskice={() => setActiveTab("puskice")}
-          onOpenMessages={() => setActiveTab("messages")}
           onOpenChatHistory={() => {
             if (messages.length === 0) {
               toast({ title: "Istorija ćeta", description: "Nema poruka u istoriji." });
