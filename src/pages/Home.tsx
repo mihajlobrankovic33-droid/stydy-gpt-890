@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, FileText, Loader2, ArrowLeft, Users } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
 
@@ -256,6 +256,8 @@ const Home = () => {
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
+          onOpenPuskice={() => setActiveTab("puskice")}
+          onOpenMessages={() => setActiveTab("messages")}
           onOpenChatHistory={() => {
             if (messages.length === 0) {
               toast({ title: "Istorija ćeta", description: "Nema poruka u istoriji." });
@@ -295,24 +297,16 @@ const Home = () => {
       <div className="flex-1 overflow-hidden min-h-0">
         <div className="w-full h-full flex flex-col min-h-0">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "puskice" | "messages")} className="flex-1 flex flex-col min-h-0">
-            {activeTab === "chat" ? (
+            {activeTab === "chat" && (
               <div className="px-4 pt-2">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/50">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-1 bg-muted/50">
                   <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     <MessageCircle className="w-4 h-4 mr-1.5" />
                     <span className="hidden sm:inline">AI </span>Chat
                   </TabsTrigger>
-                  <TabsTrigger value="puskice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <FileText className="w-4 h-4 mr-1.5" />
-                    Puškice
-                  </TabsTrigger>
-                  <TabsTrigger value="messages" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    <Users className="w-4 h-4 mr-1.5" />
-                    Poruke
-                  </TabsTrigger>
                 </TabsList>
               </div>
-            ) : null}
+            )}
 
             <TabsContent value="chat" className="flex-1 flex flex-col min-h-0 mt-0 overflow-hidden">
               <div className="flex-1 flex flex-col min-h-0">
@@ -362,9 +356,9 @@ const Home = () => {
 
             <TabsContent
               value="puskice"
-              className="flex-1 mt-0 bg-background overflow-auto p-4 pt-20"
+              className="fixed inset-0 z-50 bg-background overflow-auto"
             >
-              <div className="max-w-4xl mx-auto">
+              <div className="p-4">
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab("chat")}
@@ -379,18 +373,20 @@ const Home = () => {
 
             <TabsContent
               value="messages"
-              className="flex-1 mt-0 bg-background overflow-auto p-4 pt-20"
+              className="fixed inset-0 z-50 bg-background overflow-auto"
             >
-              <div className="max-w-4xl mx-auto">
+              <div className="p-4 h-full flex flex-col">
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab("chat")}
-                  className="mb-4"
+                  className="mb-4 self-start"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Nazad
                 </Button>
-                <DirectChat />
+                <div className="flex-1 min-h-0">
+                  <DirectChat />
+                </div>
               </div>
             </TabsContent>
           </Tabs>
