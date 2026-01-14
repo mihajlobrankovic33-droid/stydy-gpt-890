@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, FileText, Users } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/hooks/useTheme";
@@ -14,11 +14,9 @@ interface HamburgerMenuProps {
   onOpenProModal: () => void;
   onOpenChatHistory: () => void;
   onClearHistory: () => void;
-  onOpenPuskice: () => void;
-  onOpenMessages: () => void;
 }
 
-export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory, onOpenPuskice, onOpenMessages }: HamburgerMenuProps) {
+export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
@@ -77,15 +75,6 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
     onClearHistory();
   };
 
-  const handleOpenPuskice = () => {
-    setIsOpen(false);
-    onOpenPuskice();
-  };
-
-  const handleOpenMessages = () => {
-    setIsOpen(false);
-    onOpenMessages();
-  };
 
   const handleAdminLogin = () => {
     if (adminPasswordInput === ADMIN_PASSWORD) {
@@ -148,23 +137,6 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               </button>
             )}
 
-            {/* Puškice */}
-            <button
-              onClick={handleOpenPuskice}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
-            >
-              <FileText className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Moje Puškice</span>
-            </button>
-
-            {/* Messages / Poruke */}
-            <button
-              onClick={handleOpenMessages}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
-            >
-              <Users className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Poruke</span>
-            </button>
 
             {/* Theme Toggle */}
             <button
