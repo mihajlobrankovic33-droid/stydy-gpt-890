@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   updatePuskica,
   PuskiceItem,
 } from "@/lib/puskiceService";
-import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Pencil } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, Sparkles, Shield, Pencil, Image, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 
@@ -34,9 +34,12 @@ export function PuskiceSection() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showQuickView, setShowQuickView] = useState<PuskiceItem | null>(null);
+  const [showFullscreenImage, setShowFullscreenImage] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<PuskiceItem | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState<string | undefined>(undefined);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,7 +53,19 @@ export function PuskiceSection() {
       setShowProModal(true);
       return;
     }
+    setNewImageUrl(undefined);
     setShowCreateModal(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setNewImageUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSave = () => {
@@ -63,7 +78,7 @@ export function PuskiceSection() {
       return;
     }
 
-    const result = createPuskica(newTitle.trim(), newContent.trim(), hasUnlimitedAccess);
+    const result = createPuskica(newTitle.trim(), newContent.trim(), newImageUrl, hasUnlimitedAccess);
 
     // Only show pro modal if not unlimited access
     if (!result.success && !hasUnlimitedAccess) {
@@ -76,6 +91,7 @@ export function PuskiceSection() {
     setRemaining(getRemainingToday());
     setNewTitle("");
     setNewContent("");
+    setNewImageUrl(undefined);
     setShowCreateModal(false);
 
     toast({
@@ -88,6 +104,7 @@ export function PuskiceSection() {
     setEditingItem(item);
     setNewTitle(item.title);
     setNewContent(item.content);
+    setNewImageUrl(item.imageUrl);
   };
 
   const handleUpdate = () => {
@@ -102,13 +119,14 @@ export function PuskiceSection() {
       return;
     }
 
-    const success = updatePuskica(editingItem.id, newTitle.trim(), newContent.trim());
+    const success = updatePuskica(editingItem.id, newTitle.trim(), newContent.trim(), newImageUrl);
     
     if (success) {
       setPuskice(getAllPuskice());
       setEditingItem(null);
       setNewTitle("");
       setNewContent("");
+      setNewImageUrl(undefined);
       toast({
         title: "Uspješno!",
         description: "Puškica je ažurirana.",
@@ -199,6 +217,16 @@ export function PuskiceSection() {
                     <Eye className="w-4 h-4 mr-1" />
                     View
                   </Button>
+                  {item.imageUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFullscreenImage(item.imageUrl!)}
+                      className="border-accent/30 text-accent hover:bg-accent/10"
+                    >
+                      <Image className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -249,6 +277,44 @@ export function PuskiceSection() {
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
               />
             </div>
+            {/* Image Upload */}
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                ref={imageInputRef}
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              {newImageUrl ? (
+                <div className="relative">
+                  <img 
+                    src={newImageUrl} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover rounded-lg border border-border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 w-6 h-6"
+                    onClick={() => setNewImageUrl(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed border-2 h-20"
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <Image className="w-5 h-5 mr-2" />
+                  Dodaj sliku
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -285,7 +351,7 @@ export function PuskiceSection() {
       </Dialog>
 
       {/* Edit Modal */}
-      <Dialog open={!!editingItem} onOpenChange={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); }}>
+      <Dialog open={!!editingItem} onOpenChange={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); setNewImageUrl(undefined); }}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">Uredi Puškicu</DialogTitle>
@@ -311,11 +377,42 @@ export function PuskiceSection() {
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground resize-none"
               />
             </div>
+            {/* Image Upload for Edit */}
+            <div>
+              {newImageUrl ? (
+                <div className="relative">
+                  <img 
+                    src={newImageUrl} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover rounded-lg border border-border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 w-6 h-6"
+                    onClick={() => setNewImageUrl(undefined)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed border-2 h-20"
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <Image className="w-5 h-5 mr-2" />
+                  Dodaj sliku
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); }}
+              onClick={() => { setEditingItem(null); setNewTitle(""); setNewContent(""); setNewImageUrl(undefined); }}
               className="flex-1"
             >
               Odustani
@@ -329,6 +426,29 @@ export function PuskiceSection() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Fullscreen Image Modal */}
+      {showFullscreenImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+          onClick={() => setShowFullscreenImage(null)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
+            onClick={() => setShowFullscreenImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </Button>
+          <img 
+            src={showFullscreenImage} 
+            alt="Fullscreen" 
+            className="max-w-full max-h-full object-contain p-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
