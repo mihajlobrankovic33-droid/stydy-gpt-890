@@ -15,6 +15,7 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { HamburgerMenu } from "@/components/HamburgerMenu";
 import { ProfileSettings } from "@/components/ProfileSettings";
+import { ChatHistoryModal, detectSubject, generateTitle } from "@/components/ChatHistoryModal";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
@@ -22,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageCircle, FileText, Users } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -43,6 +45,8 @@ const Home = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -186,6 +190,48 @@ const Home = () => {
     }
   };
 
+  // Save session to database
+  const saveSession = async (msgs: Message[]) => {
+    if (!user || msgs.length === 0) return;
+
+    const simplifiedMessages = msgs.map(m => ({ role: m.role, content: m.content }));
+    const title = generateTitle(simplifiedMessages);
+    const subject = detectSubject(simplifiedMessages);
+
+    try {
+      if (currentSessionId) {
+        // Update existing session
+        await supabase
+          .from('chat_sessions')
+          .update({
+            messages: simplifiedMessages,
+            title,
+            subject,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentSessionId);
+      } else {
+        // Create new session
+        const { data, error } = await supabase
+          .from('chat_sessions')
+          .insert({
+            user_id: user.id,
+            messages: simplifiedMessages,
+            title,
+            subject
+          })
+          .select('id')
+          .single();
+
+        if (!error && data) {
+          setCurrentSessionId(data.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
+  };
+
   const handleSend = async (content: string, fileUrl?: string, fileType?: "image" | "pdf" | "sticker") => {
     const userMessage: Message = { 
       role: "user", 
@@ -200,6 +246,26 @@ const Home = () => {
     if (fileType !== "sticker") {
       await streamChat(newMessages, currentAction || undefined);
     }
+  };
+
+  // Save session when messages change (debounced effect)
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading) {
+      const timeout = setTimeout(() => {
+        saveSession(messages);
+      }, 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [messages, isLoading]);
+
+  const handleLoadSession = (loadedMessages: Array<{ role: "user" | "assistant"; content: string }>, sessionId: string) => {
+    setMessages(loadedMessages);
+    setCurrentSessionId(sessionId);
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setCurrentSessionId(null);
   };
 
   const handleQuickAction = async (action: ActionType, prompt: string) => {
@@ -254,26 +320,22 @@ const Home = () => {
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
           onOpenProModal={() => setShowProModal(true)}
-          onOpenChatHistory={() => {
-            if (messages.length === 0) {
-              toast({ title: "Istorija ćeta", description: "Nema poruka u istoriji." });
-            } else {
-              toast({ title: "Istorija ćeta", description: `Imate ${messages.length} poruka u ovoj sesiji.` });
-            }
-          }}
-          onClearHistory={() => {
-            if (messages.length === 0) {
-              toast({ title: "Istorija ćeta", description: "Nema poruka za brisanje." });
-            } else {
-              setMessages([]);
-              toast({ title: "Obrisano", description: "Istorija ćeta je obrisana." });
-            }
-          }}
+          onOpenChatHistory={() => setShowChatHistory(true)}
+          onClearHistory={handleNewChat}
         />
       </div>
       
       {/* Profile Settings Modal */}
       <ProfileSettings isOpen={showProfileSettings} onClose={() => setShowProfileSettings(false)} />
+      
+      {/* Chat History Modal */}
+      <ChatHistoryModal 
+        open={showChatHistory}
+        onOpenChange={setShowChatHistory}
+        onLoadSession={handleLoadSession}
+        onNewChat={handleNewChat}
+        currentSessionId={currentSessionId}
+      />
       
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
