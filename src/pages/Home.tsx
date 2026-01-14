@@ -98,10 +98,20 @@ const Home = () => {
     setShowAdminPanel(true);
   };
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    const scrollToBottom = () => {
+      if (scrollRef.current) {
+        const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      }
+    };
+    
+    // Small delay to ensure content is rendered
+    const timeoutId = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timeoutId);
   }, [messages, isLoading]);
 
   const streamChat = async (newMessages: Message[], actionType?: ActionType) => {
@@ -307,28 +317,30 @@ const Home = () => {
             ) : null}
 
             <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
-              {messages.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <div className="w-full max-w-4xl mx-auto">
-                    <WelcomeMessage />
+              <div className="flex-1 flex flex-col min-h-0">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center p-4">
+                    <div className="w-full max-w-4xl mx-auto">
+                      <WelcomeMessage />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-                  <div className="w-full max-w-4xl mx-auto space-y-4 pb-4">
-                    {messages.map((message, index) => (
-                      <ChatMessage key={index} message={message} />
-                    ))}
-                    {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                      <TypingIndicator />
-                    )}
-                  </div>
-                </ScrollArea>
-              )}
+                ) : (
+                  <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+                    <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
+                      {messages.map((message, index) => (
+                        <ChatMessage key={index} message={message} />
+                      ))}
+                      {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                        <TypingIndicator />
+                      )}
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
 
-              {/* Input area - only show for chat */}
-              <div className="border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
-                <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-4 space-y-2 sm:space-y-4">
+              {/* Input area - fixed at bottom, never covers content */}
+              <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm safe-area-bottom">
+                <div className="max-w-4xl mx-auto px-2 py-2 sm:px-4 sm:py-3 space-y-2 sm:space-y-3">
                   {/* Action indicator */}
                   {currentAction && (
                     <div className="flex items-center justify-center">
