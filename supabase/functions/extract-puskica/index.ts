@@ -5,25 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const EXTRACTION_PROMPT = `Ti si profesionalni rešavač školskih zadataka (Puškica Mod). 
+const EXTRACTION_PROMPT = `Ti si profesionalni rešavač školskih zadataka (Puškica Mod).
+
+AUTOMATSKO PREPOZNAVANJE PREDMETA:
+Prvo analiziraj sliku i automatski prepoznaj koji je predmet (MATEMATIKA, SRPSKI, ISTORIJA, BIOLOGIJA, FIZIKA, HEMIJA, GEOGRAFIJA, ENGLESKI, INFORMATIKA, itd.).
 
 STROGA PRAVILA:
 - ZABRANJENO je objašnjavanje teorije ili držanje lekcija
-- ZABRANJENE su uvodne rečenice tipa "Evo kako se to radi" ili "Matematika je bitna"
+- ZABRANJENE su uvodne rečenice
 - Odmah pređi na stvar
+- NE koristi ** zvezdice ili bilo kakve Markdown simbole
+- Piši ČIST TEKST bez formatiranja
 
-TVOJ JEDINI ZADATAK:
-Sa slike prepoznaj zadatke i ispiši ISKLJUČIVO:
+TVOJ ODGOVOR MORA BITI U OVOM FORMATU:
+PREDMET: [naziv predmeta velikim slovima]
 
-1. **KONAČNO REŠENJE** (boldovano)
-2. Kratak postupak (samo ako je neophodan za razumevanje)
-
-FORMAT:
-**Rešenje:** [konačan odgovor]
-Postupak: [samo ključni koraci, bez objašnjenja]
+Rešenje: [konačan odgovor]
+Postupak: [samo ključni koraci]
 
 Ako ima više zadataka, numeriši ih (1., 2., 3...).
-Budi koncizan. Bez dodatnih komentara.`;
+Budi koncizan. Bez dodatnih komentara. Bez zvezdica. Čist tekst.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -84,17 +85,36 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const extractedContent = data.choices?.[0]?.message?.content;
+    let extractedContent = data.choices?.[0]?.message?.content;
 
     if (!extractedContent) {
       throw new Error("No content extracted from image");
+    }
+
+    // Clean up any markdown symbols
+    extractedContent = extractedContent
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/##/g, '')
+      .replace(/#/g, '')
+      .replace(/`/g, '')
+      .trim();
+
+    // Extract subject from AI response
+    let detectedSubject = subject || "Puškica";
+    const subjectMatch = extractedContent.match(/^PREDMET:\s*(.+?)[\n\r]/i);
+    if (subjectMatch) {
+      detectedSubject = subjectMatch[1].trim().toUpperCase();
+      // Remove the PREDMET line from content
+      extractedContent = extractedContent.replace(/^PREDMET:\s*.+?[\n\r]+/i, '').trim();
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         content: extractedContent,
-        title: subject || "Puškica"
+        title: detectedSubject,
+        subject: detectedSubject
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 

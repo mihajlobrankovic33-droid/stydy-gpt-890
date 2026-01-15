@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ProUpgradeModal } from "./ProUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Eye, Trash2, FileText, Sparkles, Shield, X, Loader2, Upload, BookOpen } from "lucide-react";
-import { FullscreenModal } from "@/components/FullscreenModal";
+import { FullscreenModal, cleanText } from "@/components/FullscreenModal";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 
@@ -182,12 +182,12 @@ export function PuskiceSection() {
         throw new Error(result.error || "Ekstrakcija nije uspjela");
       }
 
-      // Save to database (do NOT store image/base64 in DB)
+      // Save to database with detected subject from AI
       const { error: insertError } = await supabase.from("puskice").insert({
         user_id: user.id,
-        title: subject.trim(),
+        title: result.title || subject.trim(),
         content: result.content,
-        subject: subject.trim(),
+        subject: result.subject || subject.trim(),
       });
 
       if (insertError) {
@@ -430,10 +430,11 @@ export function PuskiceSection() {
         className="hidden"
       />
 
-      {/* Quick View Modal */}
+      {/* Quick View Modal - Updated Layout */}
       <FullscreenModal
         open={!!showQuickView}
         title={showQuickView?.title ?? "Puškica"}
+        subject={showQuickView?.subject}
         onClose={() => setShowQuickView(null)}
         footer={
           <Button variant="outline" onClick={() => setShowQuickView(null)} className="w-full">
@@ -443,8 +444,8 @@ export function PuskiceSection() {
       >
         <div className="space-y-4">
           <div className="p-4 rounded-lg bg-muted/50 border border-border">
-            <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-              {showQuickView?.content}
+            <p className="text-foreground whitespace-pre-wrap leading-relaxed text-base">
+              {cleanText(showQuickView?.content || '')}
             </p>
           </div>
         </div>
