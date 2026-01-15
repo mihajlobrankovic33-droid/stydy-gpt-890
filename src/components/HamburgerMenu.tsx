@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, Globe, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "@/hooks/useTheme";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
+import { useLanguage, languageNames, Language } from "@/context/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
 
@@ -19,16 +20,18 @@ interface HamburgerMenuProps {
 export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminError, setAdminError] = useState("");
   const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
+  const { language, setLanguage, t } = useLanguage();
   const { toast } = useToast();
 
   const handleCheckForUpdates = async () => {
     setIsOpen(false);
-    toast({ title: "Provera ažuriranja…", description: "Molimo sačekaj." });
+    toast({ title: t.checkingUpdates, description: t.pleaseWait });
 
     try {
       const registrations = await navigator.serviceWorker?.getRegistrations();
@@ -39,8 +42,8 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
       window.location.reload();
     } catch {
       toast({
-        title: "Greška",
-        description: "Nije moguće proveriti ažuriranje.",
+        title: t.error,
+        description: t.cannotCheckUpdate,
         variant: "destructive",
       });
     }
@@ -84,8 +87,13 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
       setIsOpen(false);
       setShowProCodesAdmin(true);
     } else {
-      setAdminError("Pogrešna šifra");
+      setAdminError(t.wrongPassword);
     }
+  };
+
+  const handleSelectLanguage = (lang: Language) => {
+    setLanguage(lang);
+    setShowLanguages(false);
   };
 
   return (
@@ -106,12 +114,12 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
         <div className="fixed inset-0 z-[200] bg-background flex flex-col animate-fade-in">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-            <h2 className="text-lg font-bold text-foreground">Meni</h2>
+            <h2 className="text-lg font-bold text-foreground">{t.menu}</h2>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              aria-label="Zatvori meni"
+              aria-label="Close menu"
             >
               <X className="h-6 w-6" />
             </Button>
@@ -124,7 +132,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
                 <Crown className="w-5 h-5 text-amber-400" />
                 <span className="text-sm font-medium text-amber-400">
-                  {isLifetimePro ? "Lifetime Pro" : `Pro (${daysRemaining} dana)`}
+                  {isLifetimePro ? t.lifetimePro : `Pro (${daysRemaining} ${t.days})`}
                 </span>
               </div>
             ) : (
@@ -133,10 +141,54 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-left hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
               >
                 <Crown className="w-5 h-5 text-amber-400" />
-                <span className="text-sm font-semibold text-amber-400">Nadogradi na Pro</span>
+                <span className="text-sm font-semibold text-amber-400">{t.upgradeToPro}</span>
               </button>
             )}
 
+            {/* Languages Section */}
+            {!showLanguages ? (
+              <button
+                onClick={() => setShowLanguages(true)}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
+              >
+                <Globe className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-foreground">{t.languages}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{languageNames[language]}</span>
+              </button>
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium text-foreground">{t.languages}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowLanguages(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(languageNames) as Language[]).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => handleSelectLanguage(lang)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                        language === lang
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80 text-foreground"
+                      }`}
+                    >
+                      <span>{languageNames[lang]}</span>
+                      {language === lang && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Theme Toggle */}
             <button
@@ -149,7 +201,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
                 <Moon className="w-5 h-5 text-primary" />
               )}
               <span className="text-sm font-medium text-foreground">
-                {theme === "dark" ? "Svetli režim" : "Tamni režim"}
+                {theme === "dark" ? t.lightMode : t.darkMode}
               </span>
             </button>
 
@@ -159,7 +211,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
             >
               <User className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Uredi profil / Avatar</span>
+              <span className="text-sm font-medium text-foreground">{t.editProfile}</span>
             </button>
 
             {/* Chat History */}
@@ -168,7 +220,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
             >
               <History className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Istorija ćeta</span>
+              <span className="text-sm font-medium text-foreground">{t.chatHistory}</span>
             </button>
 
             {/* Clear Chat History */}
@@ -177,7 +229,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
             >
               <Trash2 className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Obriši istoriju</span>
+              <span className="text-sm font-medium text-foreground">{t.clearHistory}</span>
             </button>
 
             {/* Check for Updates */}
@@ -186,7 +238,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
             >
               <RefreshCw className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-foreground">Proveri ažuriranje</span>
+              <span className="text-sm font-medium text-foreground">{t.checkUpdates}</span>
             </button>
 
             {/* Admin Login */}
@@ -196,17 +248,17 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
               >
                 <Shield className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">Admin</span>
+                <span className="text-sm font-medium text-muted-foreground">{t.admin}</span>
               </button>
             ) : (
               <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-3">
                 <div className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Admin Login</span>
+                  <span className="text-sm font-medium text-foreground">{t.admin}</span>
                 </div>
                 <Input
                   type="password"
-                  placeholder="Šifra..."
+                  placeholder={t.password}
                   value={adminPasswordInput}
                   onChange={(e) => {
                     setAdminPasswordInput(e.target.value);
@@ -229,10 +281,10 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
                     }}
                     className="flex-1"
                   >
-                    Odustani
+                    {t.cancel}
                   </Button>
                   <Button size="sm" onClick={handleAdminLogin} className="flex-1">
-                    Uđi
+                    {t.enter}
                   </Button>
                 </div>
               </div>
@@ -244,7 +296,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-left hover:bg-destructive/20 transition-colors"
             >
               <LogOut className="w-5 h-5 text-destructive" />
-              <span className="text-sm font-medium text-destructive">Odjavi se</span>
+              <span className="text-sm font-medium text-destructive">{t.signOut}</span>
             </button>
           </div>
 
