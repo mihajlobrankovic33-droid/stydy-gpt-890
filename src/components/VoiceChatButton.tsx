@@ -323,7 +323,8 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
           }
         };
 
-        recorder.start();
+        // Use timeslice to ensure ondataavailable fires during recording
+        recorder.start(500);
 
         // Auto stop after 12s (tap again also stops)
         window.setTimeout(() => {
