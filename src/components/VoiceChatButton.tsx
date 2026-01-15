@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { useLanguage, Language } from "@/context/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
+import { SpeakingAvatarModal } from "./SpeakingAvatarModal";
 
 interface VoiceChatButtonProps {
   onTranscript: (text: string) => void;
@@ -47,6 +48,9 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentTranscript, setCurrentTranscript] = useState<string>("");
+  const [currentResponse, setCurrentResponse] = useState<string>("");
   const recognitionRef = useRef<InstanceType<SpeechRecognitionType> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -86,6 +90,12 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       audioRef.current.onended = () => {
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
+        // Close modal after speaking ends
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setCurrentTranscript("");
+          setCurrentResponse("");
+        }, 1500);
       };
       audioRef.current.onerror = () => {
         setIsSpeaking(false);
@@ -109,6 +119,11 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       return;
     }
 
+    // Open modal and reset state
+    setIsModalOpen(true);
+    setCurrentTranscript("");
+    setCurrentResponse("");
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
@@ -124,6 +139,7 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       const transcript = event.results[0][0].transcript;
       setIsListening(false);
       setIsProcessing(true);
+      setCurrentTranscript(transcript);
       
       // Send transcript to parent
       onTranscript(transcript);
@@ -149,12 +165,14 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         if (response.ok) {
           const data = await response.json();
           if (data.response) {
+            setCurrentResponse(data.response);
             onAIResponse?.(data.response);
             await speakResponse(data.response);
           }
         }
       } catch (error) {
         console.error("Voice chat error:", error);
+        setIsModalOpen(false);
       } finally {
         setIsProcessing(false);
       }
@@ -164,6 +182,7 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       console.error("Speech recognition error:", event.error);
       setIsListening(false);
       setIsProcessing(false);
+      setIsModalOpen(false);
     };
 
     recognition.onend = () => {
@@ -189,31 +208,55 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
     }
   };
 
+  const handleCloseModal = () => {
+    stopListening();
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsModalOpen(false);
+    setIsSpeaking(false);
+    setIsProcessing(false);
+    setCurrentTranscript("");
+    setCurrentResponse("");
+  };
+
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={handleClick}
-      disabled={disabled || isProcessing}
-      className={`h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 transition-all flex-shrink-0 ${
-        isListening
-          ? "border-red-500 bg-red-500/10 animate-pulse"
-          : isSpeaking
-          ? "border-primary bg-primary/10"
-          : "border-border hover:border-primary/50"
-      }`}
-      title={isListening ? t.stopListening : t.tapToSpeak}
-    >
-      {isProcessing ? (
-        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-spin" />
-      ) : isSpeaking ? (
-        <Volume2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-      ) : isListening ? (
-        <MicOff className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
-      ) : (
-        <Mic className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-      )}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={handleClick}
+        disabled={disabled || isProcessing}
+        className={`h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 transition-all flex-shrink-0 ${
+          isListening
+            ? "border-red-500 bg-red-500/10 animate-pulse"
+            : isSpeaking
+            ? "border-primary bg-primary/10"
+            : "border-border hover:border-primary/50"
+        }`}
+        title={isListening ? t.stopListening : t.tapToSpeak}
+      >
+        {isProcessing ? (
+          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-spin" />
+        ) : isSpeaking ? (
+          <Volume2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+        ) : isListening ? (
+          <MicOff className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+        ) : (
+          <Mic className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+        )}
+      </Button>
+
+      <SpeakingAvatarModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        isListening={isListening}
+        isSpeaking={isSpeaking}
+        isProcessing={isProcessing}
+        transcript={currentTranscript}
+        response={currentResponse}
+      />
+    </>
   );
 }
 
