@@ -250,6 +250,15 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
   }
+
+  .animate-subtle-bounce {
+    animation: subtleBounce 0.6s ease-in-out infinite;
+  }
+
+  @keyframes subtleBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
 }
 
 /* Hide Lovable watermarks */
