@@ -116,13 +116,9 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         description: "Speech recognition not supported in this browser.",
         variant: "destructive",
       });
+      setIsModalOpen(false);
       return;
     }
-
-    // Open modal and reset state
-    setIsModalOpen(true);
-    setCurrentTranscript("");
-    setCurrentResponse("");
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -201,6 +197,11 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
   }, []);
 
   const handleClick = () => {
+    // Always open modal immediately when button is pressed
+    setIsModalOpen(true);
+    setCurrentTranscript("");
+    setCurrentResponse("");
+    
     if (isListening) {
       stopListening();
     } else {
