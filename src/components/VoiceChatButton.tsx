@@ -58,6 +58,13 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<BlobPart[]>([]);
 
+  // Voice activity detection (stop when user goes silent)
+  const vadRafRef = useRef<number | null>(null);
+  const vadCleanupRef = useRef<(() => void) | null>(null);
+  const silenceSinceRef = useRef<number | null>(null);
+  const hasSoundRef = useRef(false);
+  const recordingStartRef = useRef<number>(0);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -211,6 +218,34 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
     [language],
   );
 
+  const stopMediaRecorder = useCallback(() => {
+    if (vadRafRef.current) {
+      cancelAnimationFrame(vadRafRef.current);
+      vadRafRef.current = null;
+    }
+    if (vadCleanupRef.current) {
+      try {
+        vadCleanupRef.current();
+      } catch {
+        // ignore
+      }
+      vadCleanupRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      try {
+        mediaRecorderRef.current.requestData?.();
+      } catch {
+        // ignore
+      }
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const stopListening = useCallback(() => {
     // Stop Web Speech API
     if (recognitionRef.current) {
@@ -222,17 +257,11 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       recognitionRef.current = null;
     }
 
-    // Stop MediaRecorder fallback
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        // ignore
-      }
-    }
+    // Stop MediaRecorder
+    stopMediaRecorder();
 
     setIsListening(false);
-  }, []);
+  }, [stopMediaRecorder]);
 
   const startListening = useCallback(async () => {
     await unlockAudio();
@@ -254,6 +283,9 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
 
         mediaStreamRef.current = stream;
         recordedChunksRef.current = [];
+        hasSoundRef.current = false;
+        silenceSinceRef.current = null;
+        recordingStartRef.current = Date.now();
 
         const preferredTypes = [
           "audio/webm;codecs=opus",
@@ -275,13 +307,92 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         };
 
         recorder.onstart = () => {
-          console.log("[VoiceChat] recording started");
+          console.log("[VoiceChat] recording started", { mimeType: recorder.mimeType });
           setIsListening(true);
         };
+
+        // VAD: stop recording ~1s after user goes silent
+        try {
+          const ctx = audioContextRef.current;
+          if (ctx) {
+            const source = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 2048;
+            source.connect(analyser);
+
+            const data = new Uint8Array(analyser.fftSize);
+
+            vadCleanupRef.current = () => {
+              try {
+                source.disconnect();
+              } catch {
+                // ignore
+              }
+              try {
+                analyser.disconnect();
+              } catch {
+                // ignore
+              }
+            };
+
+            const tick = () => {
+              try {
+                analyser.getByteTimeDomainData(data);
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                  const v = (data[i] - 128) / 128;
+                  sum += v * v;
+                }
+                const rms = Math.sqrt(sum / data.length);
+                const now = Date.now();
+
+                // Threshold tuned for speech on mobile
+                if (rms > 0.02) {
+                  hasSoundRef.current = true;
+                  silenceSinceRef.current = null;
+                } else if (hasSoundRef.current) {
+                  if (!silenceSinceRef.current) silenceSinceRef.current = now;
+
+                  const silentFor = now - (silenceSinceRef.current || now);
+                  const recordedFor = now - recordingStartRef.current;
+
+                  if (silentFor > 900 && recordedFor > 1200) {
+                    stopMediaRecorder();
+                    return;
+                  }
+                }
+
+                vadRafRef.current = requestAnimationFrame(tick);
+              } catch {
+                vadRafRef.current = requestAnimationFrame(tick);
+              }
+            };
+
+            vadRafRef.current = requestAnimationFrame(tick);
+          }
+        } catch {
+          // ignore VAD setup failures
+        }
 
         recorder.onstop = async () => {
           console.log("[VoiceChat] recording stopped");
           setIsListening(false);
+
+          // ensure last chunk is flushed on browsers where dataavailable arrives late
+          await new Promise((r) => setTimeout(r, 200));
+
+          if (vadRafRef.current) {
+            cancelAnimationFrame(vadRafRef.current);
+            vadRafRef.current = null;
+          }
+          if (vadCleanupRef.current) {
+            try {
+              vadCleanupRef.current();
+            } catch {
+              // ignore
+            }
+            vadCleanupRef.current = null;
+          }
 
           try {
             mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -293,10 +404,11 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
           const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
           recordedChunksRef.current = [];
 
-          if (blob.size < 1000) {
+          // Some devices produce small blobs; treat empty as failure and let STT decide the rest
+          if (blob.size <= 0) {
             toast({
               title: t.error,
-              description: "No audio captured. Try again.",
+              description: "No audio captured. Check microphone permission and try again.",
               variant: "destructive",
             });
             setIsModalOpen(false);
@@ -308,7 +420,15 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
             console.log("[VoiceChat] transcribing…", { size: blob.size, type: blob.type });
             const transcript = await transcribeRecordedAudio(blob);
             console.log("[VoiceChat] transcript:", transcript);
-            if (!transcript.trim()) throw new Error("Empty transcript");
+            if (!transcript.trim()) {
+              toast({
+                title: t.error,
+                description: "Nisam razumeo govor. Probaj ponovo i pričaj malo glasnije.",
+                variant: "destructive",
+              });
+              setIsModalOpen(false);
+              return;
+            }
             await processTranscript(transcript);
           } catch (err) {
             console.error("[VoiceChat] Transcription error:", err);
@@ -329,11 +449,7 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         // Auto stop after 12s (tap again also stops)
         window.setTimeout(() => {
           if (mediaRecorderRef.current?.state === "recording") {
-            try {
-              mediaRecorderRef.current.stop();
-            } catch {
-              // ignore
-            }
+            stopMediaRecorder();
           }
         }, 12000);
       } catch (err) {
@@ -347,13 +463,7 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       }
     };
 
-    // Prefer recording + server-side transcription (works across more devices)
-    if (supportsMediaRecorder) {
-      await startRecording();
-      return;
-    }
-
-    // Fallback to Web Speech API
+    // Prefer Web Speech API (stops automatically when you stop talking)
     if (supportsSpeechRecognition) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -374,9 +484,16 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         await processTranscript(transcript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = async (event) => {
         console.error("[VoiceChat] Speech recognition error:", event.error);
         setIsListening(false);
+
+        // fallback to recording (iOS/Safari, some Android browsers)
+        if (supportsMediaRecorder) {
+          await startRecording();
+          return;
+        }
+
         toast({
           title: t.error,
           description: "Speech recognition failed on this device.",
@@ -394,8 +511,18 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
         recognition.start();
       } catch (e) {
         console.error("[VoiceChat] Recognition start failed:", e);
+        if (supportsMediaRecorder) {
+          await startRecording();
+          return;
+        }
         setIsModalOpen(false);
       }
+      return;
+    }
+
+    // Fallback: recording + server-side transcription
+    if (supportsMediaRecorder) {
+      await startRecording();
       return;
     }
 
@@ -444,6 +571,19 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
 
   useEffect(() => {
     return () => {
+      if (vadRafRef.current) {
+        cancelAnimationFrame(vadRafRef.current);
+        vadRafRef.current = null;
+      }
+      if (vadCleanupRef.current) {
+        try {
+          vadCleanupRef.current();
+        } catch {
+          // ignore
+        }
+        vadCleanupRef.current = null;
+      }
+
       try {
         recognitionRef.current?.stop();
       } catch {
