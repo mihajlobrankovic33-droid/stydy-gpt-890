@@ -2,14 +2,16 @@ import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Camera, Image, X, FileText } from "lucide-react";
-import { StickerPicker } from "./StickerPicker";
+import { VoiceChatButton } from "./VoiceChatButton";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ChatInputProps {
-  onSend: (message: string, fileUrl?: string, fileType?: "image" | "pdf" | "sticker") => void;
+  onSend: (message: string, fileUrl?: string, fileType?: "image" | "pdf") => void;
   disabled?: boolean;
 }
 
 export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
+  const { t } = useLanguage();
   const [input, setInput] = useState("");
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileData, setFileData] = useState<string | null>(null);
@@ -27,8 +29,9 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
-  const handleStickerSelect = (sticker: string) => {
-    onSend(sticker, undefined, "sticker");
+  const handleVoiceTranscript = (transcript: string) => {
+    // Send the transcript as a message
+    onSend(transcript);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -182,11 +185,11 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           className="h-11 w-11 sm:h-[52px] sm:w-[52px] rounded-xl border-2 border-border hover:border-primary/50 transition-colors flex-shrink-0"
           title="Share PDF"
         >
-          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
         </Button>
 
-        {/* Sticker Picker */}
-        <StickerPicker onSelect={handleStickerSelect} disabled={disabled} />
+        {/* Voice Chat Button */}
+        <VoiceChatButton onTranscript={handleVoiceTranscript} disabled={disabled} />
 
         {/* Text Input */}
         <div className="flex-1 min-w-0">
@@ -194,7 +197,7 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={fileData ? (fileType === "pdf" ? "Add a message..." : "Ask about this image...") : "Ask anything..."}
+            placeholder={fileData ? (fileType === "pdf" ? t.addMessage : t.askAboutImage) : t.askAnything}
             className="min-h-[44px] sm:min-h-[52px] max-h-[100px] sm:max-h-[120px] resize-none pr-3 sm:pr-4 rounded-xl border-2 border-border bg-card focus:border-primary transition-colors text-sm sm:text-base"
             disabled={disabled}
           />
