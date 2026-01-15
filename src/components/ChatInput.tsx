@@ -2,7 +2,6 @@ import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Camera, Image, X, FileText } from "lucide-react";
-import { VoiceChatButton } from "./VoiceChatButton";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface ChatInputProps {
@@ -29,10 +28,6 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
-  const handleVoiceTranscript = (transcript: string) => {
-    // Send the transcript as a message
-    onSend(transcript);
-  };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -188,8 +183,6 @@ export const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
         </Button>
 
-        {/* Voice Chat Button */}
-        <VoiceChatButton onTranscript={handleVoiceTranscript} disabled={disabled} />
 
         {/* Text Input */}
         <div className="flex-1 min-w-0">
