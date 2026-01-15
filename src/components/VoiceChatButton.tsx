@@ -179,8 +179,16 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
   const transcribeRecordedAudio = useCallback(
     async (blob: Blob) => {
       const form = new FormData();
-      // Most browsers record webm/ogg; ElevenLabs accepts common audio containers
-      form.append("audio", blob, "recording.webm");
+
+      // Name + extension based on actual mime type
+      const mime = blob.type || "audio/webm";
+      const filename = mime.includes("mp4")
+        ? "recording.mp4"
+        : mime.includes("mpeg")
+          ? "recording.mp3"
+          : "recording.webm";
+
+      form.append("audio", blob, filename);
       form.append("language", language);
 
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-transcribe`, {
@@ -229,9 +237,122 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
   const startListening = useCallback(async () => {
     await unlockAudio();
 
+    const supportsMediaRecorder = typeof MediaRecorder !== "undefined";
     const supportsSpeechRecognition = "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
 
-    // Prefer Web Speech API when available
+    const startRecording = async () => {
+      try {
+        console.log("[VoiceChat] startRecording");
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        mediaStreamRef.current = stream;
+        recordedChunksRef.current = [];
+
+        const preferredTypes = [
+          "audio/webm;codecs=opus",
+          "audio/webm",
+          "audio/mp4",
+          "audio/ogg;codecs=opus",
+          "audio/ogg",
+        ];
+
+        const mimeType = preferredTypes.find(
+          (t) => typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported(t),
+        );
+
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
+        };
+
+        recorder.onstart = () => {
+          console.log("[VoiceChat] recording started");
+          setIsListening(true);
+        };
+
+        recorder.onstop = async () => {
+          console.log("[VoiceChat] recording stopped");
+          setIsListening(false);
+
+          try {
+            mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+          } catch {
+            // ignore
+          }
+          mediaStreamRef.current = null;
+
+          const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          recordedChunksRef.current = [];
+
+          if (blob.size < 1000) {
+            toast({
+              title: t.error,
+              description: "No audio captured. Try again.",
+              variant: "destructive",
+            });
+            setIsModalOpen(false);
+            return;
+          }
+
+          setIsProcessing(true);
+          try {
+            console.log("[VoiceChat] transcribing…", { size: blob.size, type: blob.type });
+            const transcript = await transcribeRecordedAudio(blob);
+            console.log("[VoiceChat] transcript:", transcript);
+            if (!transcript.trim()) throw new Error("Empty transcript");
+            await processTranscript(transcript);
+          } catch (err) {
+            console.error("[VoiceChat] Transcription error:", err);
+            toast({
+              title: t.error,
+              description: "Could not transcribe audio. Please try again.",
+              variant: "destructive",
+            });
+            setIsModalOpen(false);
+          } finally {
+            setIsProcessing(false);
+          }
+        };
+
+        recorder.start();
+
+        // Auto stop after 12s (tap again also stops)
+        window.setTimeout(() => {
+          if (mediaRecorderRef.current?.state === "recording") {
+            try {
+              mediaRecorderRef.current.stop();
+            } catch {
+              // ignore
+            }
+          }
+        }, 12000);
+      } catch (err) {
+        console.error("[VoiceChat] Mic permission error:", err);
+        toast({
+          title: t.error,
+          description: "Microphone permission is required.",
+          variant: "destructive",
+        });
+        setIsModalOpen(false);
+      }
+    };
+
+    // Prefer recording + server-side transcription (works across more devices)
+    if (supportsMediaRecorder) {
+      await startRecording();
+      return;
+    }
+
+    // Fallback to Web Speech API
     if (supportsSpeechRecognition) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
@@ -241,24 +362,26 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       recognition.interimResults = false;
 
       recognition.onstart = () => {
+        console.log("[VoiceChat] speech recognition started");
         setIsListening(true);
       };
 
       recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript;
+        console.log("[VoiceChat] speech transcript:", transcript);
         setIsListening(false);
         await processTranscript(transcript);
       };
 
       recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
+        console.error("[VoiceChat] Speech recognition error:", event.error);
         setIsListening(false);
-        setIsProcessing(false);
         toast({
           title: t.error,
-          description: "Speech recognition failed on this device. Using recording mode instead.",
+          description: "Speech recognition failed on this device.",
           variant: "destructive",
         });
+        setIsModalOpen(false);
       };
 
       recognition.onend = () => {
@@ -269,100 +392,18 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
       try {
         recognition.start();
       } catch (e) {
-        console.error("Recognition start failed:", e);
+        console.error("[VoiceChat] Recognition start failed:", e);
+        setIsModalOpen(false);
       }
       return;
     }
 
-    // Fallback for iOS/Safari: record audio and transcribe server-side
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      mediaStreamRef.current = stream;
-      recordedChunksRef.current = [];
-
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
-      };
-
-      recorder.onstart = () => {
-        setIsListening(true);
-      };
-
-      recorder.onstop = async () => {
-        setIsListening(false);
-
-        // stop tracks
-        try {
-          mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-        } catch {
-          // ignore
-        }
-        mediaStreamRef.current = null;
-
-        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        recordedChunksRef.current = [];
-
-        if (blob.size < 1000) {
-          toast({
-            title: t.error,
-            description: "No audio captured. Try again.",
-            variant: "destructive",
-          });
-          setIsModalOpen(false);
-          return;
-        }
-
-        setIsProcessing(true);
-        try {
-          const transcript = await transcribeRecordedAudio(blob);
-          if (!transcript.trim()) {
-            throw new Error("Empty transcript");
-          }
-          await processTranscript(transcript);
-        } catch (err) {
-          console.error("Transcription error:", err);
-          toast({
-            title: t.error,
-            description: "Could not transcribe audio. Please try again.",
-            variant: "destructive",
-          });
-          setIsModalOpen(false);
-        } finally {
-          setIsProcessing(false);
-        }
-      };
-
-      recorder.start();
-
-      // Auto stop after 8s (so one tap works even without pressing stop)
-      window.setTimeout(() => {
-        if (mediaRecorderRef.current?.state === "recording") {
-          try {
-            mediaRecorderRef.current.stop();
-          } catch {
-            // ignore
-          }
-        }
-      }, 8000);
-    } catch (err) {
-      console.error("Mic permission error:", err);
-      toast({
-        title: t.error,
-        description: "Microphone permission is required.",
-        variant: "destructive",
-      });
-      setIsModalOpen(false);
-    }
+    toast({
+      title: t.error,
+      description: "Voice input is not supported in this browser.",
+      variant: "destructive",
+    });
+    setIsModalOpen(false);
   }, [language, processTranscript, t.error, toast, transcribeRecordedAudio, unlockAudio]);
 
   const handleClick = () => {
