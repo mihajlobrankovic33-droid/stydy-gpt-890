@@ -10,6 +10,18 @@ type FullscreenModalProps = {
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  subject?: string;
+};
+
+// Clean markdown symbols from text
+const cleanText = (text: string): string => {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/##/g, '')
+    .replace(/#/g, '')
+    .replace(/`/g, '')
+    .trim();
 };
 
 export function FullscreenModal({
@@ -19,6 +31,7 @@ export function FullscreenModal({
   onClose,
   children,
   footer,
+  subject,
 }: FullscreenModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -40,39 +53,46 @@ export function FullscreenModal({
 
   if (!open) return null;
 
+  const displayTitle = cleanText(subject || title);
+
   return (
-    <div className="fixed inset-0 z-[110] bg-background">
-      <div className="h-full w-full flex flex-col">
-        <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-          <div className="flex items-start gap-3 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-foreground truncate">{title}</h2>
-              {description ? (
-                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{description}</p>
-              ) : null}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="shrink-0"
-              aria-label="Zatvori"
-              title="Zatvori"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 py-4">{children}</main>
-
-        {footer ? (
-          <footer className="border-t border-border bg-background/80 backdrop-blur-sm safe-area-bottom">
-            <div className="px-4 py-3">{footer}</div>
-          </footer>
+    <div className="fixed inset-0 z-[110] bg-background flex flex-col">
+      {/* Subject title - top left corner */}
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-primary uppercase tracking-wide">
+            {displayTitle}
+          </h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="shrink-0"
+            aria-label="Zatvori"
+            title="Zatvori"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        {description ? (
+          <p className="text-sm text-muted-foreground mt-1">{cleanText(description)}</p>
         ) : null}
-      </div>
+      </header>
+
+      {/* Content - centered */}
+      <main className="flex-1 overflow-y-auto px-4 py-6 flex items-start justify-center">
+        <div className="w-full max-w-2xl">{children}</div>
+      </main>
+
+      {/* Footer - fixed at bottom */}
+      {footer ? (
+        <footer className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm safe-area-bottom">
+          <div className="px-4 py-3 max-w-2xl mx-auto w-full">{footer}</div>
+        </footer>
+      ) : null}
     </div>
   );
 }
+
+export { cleanText };
