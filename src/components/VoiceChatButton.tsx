@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 import { useLanguage, Language } from "@/context/LanguageContext";
@@ -26,11 +26,10 @@ const speechLangCodes: Record<Language, string> = {
 };
 
 // ElevenLabs voice IDs for different languages
-// Type for SpeechRecognition
 type SpeechRecognitionType = typeof window.SpeechRecognition;
 
 const voiceIds: Record<Language, string> = {
-  sr: "onwK4e9ZLuTAKqWW03F9", // Daniel - good for Slavic
+  sr: "onwK4e9ZLuTAKqWW03F9", // Daniel
   en: "JBFqnCBsd6RMkjVDRZzb", // George
   de: "onwK4e9ZLuTAKqWW03F9", // Daniel
   fr: "FGY2WhTYpPnrIDTdsKH5", // Laura
@@ -45,22 +44,43 @@ const voiceIds: Record<Language, string> = {
 export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceChatButtonProps) {
   const { language, t } = useLanguage();
   const { toast } = useToast();
+
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState<string>("");
   const [currentResponse, setCurrentResponse] = useState<string>("");
-  const recognitionRef = useRef<InstanceType<SpeechRecognitionType> | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const speakResponse = useCallback(async (text: string) => {
+  const recognitionRef = useRef<InstanceType<SpeechRecognitionType> | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const unlockAudio = useCallback(async () => {
+    // Helps iOS/Safari allow later audio playback after a user gesture
     try {
-      setIsSpeaking(true);
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-        {
+      if (!audioContextRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+        if (Ctx) audioContextRef.current = new Ctx();
+      }
+      await audioContextRef.current?.resume();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const speakResponse = useCallback(
+    async (text: string) => {
+      try {
+        setIsSpeaking(true);
+
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -72,154 +92,337 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
             voiceId: voiceIds[language],
             language,
           }),
-        }
-      );
+        });
 
-      if (!response.ok) {
-        throw new Error("TTS failed");
-      }
+        if (!res.ok) throw new Error("TTS failed");
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.onended = () => {
+        const audioBlob = await res.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+
+        if (audioRef.current) audioRef.current.pause();
+
+        const audio = new Audio(audioUrl);
+        // @ts-expect-error - playsInline exists on iOS
+        audio.playsInline = true;
+        audioRef.current = audio;
+
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          setTimeout(() => {
+            setIsModalOpen(false);
+            setCurrentTranscript("");
+            setCurrentResponse("");
+          }, 800);
+        };
+
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+
+        await audio.play();
+      } catch (error) {
+        console.error("TTS error:", error);
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        // Close modal after speaking ends
-        setTimeout(() => {
-          setIsModalOpen(false);
-          setCurrentTranscript("");
-          setCurrentResponse("");
-        }, 1500);
-      };
-      audioRef.current.onerror = () => {
-        setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-      };
-      
-      await audioRef.current.play();
-    } catch (error) {
-      console.error("TTS error:", error);
-      setIsSpeaking(false);
-    }
-  }, [language]);
+        toast({
+          title: t.error,
+          description: "Audio playback failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [language, t.error, toast],
+  );
 
-  const startListening = useCallback(() => {
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      toast({
-        title: t.error,
-        description: "Speech recognition not supported in this browser.",
-        variant: "destructive",
-      });
-      setIsModalOpen(false);
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.lang = speechLangCodes[language];
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
-      setIsListening(false);
+  const processTranscript = useCallback(
+    async (transcript: string) => {
       setIsProcessing(true);
       setCurrentTranscript(transcript);
-      
-      // Send transcript to parent
       onTranscript(transcript);
-      
-      // Get AI response and speak it
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-chat`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              message: transcript,
-              language,
-            }),
-          }
-        );
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.response) {
-            setCurrentResponse(data.response);
-            onAIResponse?.(data.response);
-            await speakResponse(data.response);
-          }
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ message: transcript, language }),
+        });
+
+        if (!res.ok) throw new Error("Voice chat failed");
+
+        const data = await res.json();
+        const answer = data.response as string | undefined;
+        if (answer) {
+          setCurrentResponse(answer);
+          onAIResponse?.(answer);
+          await speakResponse(answer);
         }
       } catch (error) {
         console.error("Voice chat error:", error);
+        toast({
+          title: t.error,
+          description: "Voice chat failed. Please try again.",
+          variant: "destructive",
+        });
         setIsModalOpen(false);
       } finally {
         setIsProcessing(false);
       }
-    };
+    },
+    [language, onTranscript, onAIResponse, speakResponse, t.error, toast],
+  );
 
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      setIsListening(false);
-      setIsProcessing(false);
-      setIsModalOpen(false);
-    };
+  const transcribeRecordedAudio = useCallback(
+    async (blob: Blob) => {
+      const form = new FormData();
+      // Most browsers record webm/ogg; ElevenLabs accepts common audio containers
+      form.append("audio", blob, "recording.webm");
+      form.append("language", language);
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-transcribe`, {
+        method: "POST",
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: form,
+      });
 
-    recognitionRef.current = recognition;
-    recognition.start();
-  }, [language, onTranscript, onAIResponse, speakResponse, t.error, toast]);
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || "Transcription failed");
+      }
+
+      const data = await res.json();
+      return (data.text as string | undefined) || "";
+    },
+    [language],
+  );
 
   const stopListening = useCallback(() => {
+    // Stop Web Speech API
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
     }
+
+    // Stop MediaRecorder fallback
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+
     setIsListening(false);
   }, []);
 
+  const startListening = useCallback(async () => {
+    await unlockAudio();
+
+    const supportsSpeechRecognition = "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+
+    // Prefer Web Speech API when available
+    if (supportsSpeechRecognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+
+      recognition.lang = speechLangCodes[language];
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        setIsListening(false);
+        await processTranscript(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        setIsProcessing(false);
+        toast({
+          title: t.error,
+          description: "Speech recognition failed on this device. Using recording mode instead.",
+          variant: "destructive",
+        });
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      try {
+        recognition.start();
+      } catch (e) {
+        console.error("Recognition start failed:", e);
+      }
+      return;
+    }
+
+    // Fallback for iOS/Safari: record audio and transcribe server-side
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      mediaStreamRef.current = stream;
+      recordedChunksRef.current = [];
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+
+      recorder.onstart = () => {
+        setIsListening(true);
+      };
+
+      recorder.onstop = async () => {
+        setIsListening(false);
+
+        // stop tracks
+        try {
+          mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        } catch {
+          // ignore
+        }
+        mediaStreamRef.current = null;
+
+        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        recordedChunksRef.current = [];
+
+        if (blob.size < 1000) {
+          toast({
+            title: t.error,
+            description: "No audio captured. Try again.",
+            variant: "destructive",
+          });
+          setIsModalOpen(false);
+          return;
+        }
+
+        setIsProcessing(true);
+        try {
+          const transcript = await transcribeRecordedAudio(blob);
+          if (!transcript.trim()) {
+            throw new Error("Empty transcript");
+          }
+          await processTranscript(transcript);
+        } catch (err) {
+          console.error("Transcription error:", err);
+          toast({
+            title: t.error,
+            description: "Could not transcribe audio. Please try again.",
+            variant: "destructive",
+          });
+          setIsModalOpen(false);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      recorder.start();
+
+      // Auto stop after 8s (so one tap works even without pressing stop)
+      window.setTimeout(() => {
+        if (mediaRecorderRef.current?.state === "recording") {
+          try {
+            mediaRecorderRef.current.stop();
+          } catch {
+            // ignore
+          }
+        }
+      }, 8000);
+    } catch (err) {
+      console.error("Mic permission error:", err);
+      toast({
+        title: t.error,
+        description: "Microphone permission is required.",
+        variant: "destructive",
+      });
+      setIsModalOpen(false);
+    }
+  }, [language, processTranscript, t.error, toast, transcribeRecordedAudio, unlockAudio]);
+
   const handleClick = () => {
-    // Always open modal immediately when button is pressed
+    console.log("[VoiceChat] click");
+
+    // Open modal immediately
     setIsModalOpen(true);
     setCurrentTranscript("");
     setCurrentResponse("");
-    
+
     if (isListening) {
       stopListening();
-    } else {
-      startListening();
+      return;
     }
+
+    void startListening();
   };
 
   const handleCloseModal = () => {
     stopListening();
-    if (audioRef.current) {
-      audioRef.current.pause();
+    if (audioRef.current) audioRef.current.pause();
+
+    // stop tracks if any
+    try {
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+    } catch {
+      // ignore
     }
+    mediaStreamRef.current = null;
+
     setIsModalOpen(false);
     setIsSpeaking(false);
     setIsProcessing(false);
     setCurrentTranscript("");
     setCurrentResponse("");
   };
+
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // ignore
+      }
+
+      try {
+        mediaRecorderRef.current?.stop();
+      } catch {
+        // ignore
+      }
+
+      try {
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      } catch {
+        // ignore
+      }
+
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, []);
 
   return (
     <>
@@ -232,8 +435,8 @@ export function VoiceChatButton({ onTranscript, onAIResponse, disabled }: VoiceC
           isListening
             ? "border-red-500 bg-red-500/10 animate-pulse"
             : isSpeaking
-            ? "border-primary bg-primary/10"
-            : "border-border hover:border-primary/50"
+              ? "border-primary bg-primary/10"
+              : "border-border hover:border-primary/50"
         }`}
         title={isListening ? t.stopListening : t.tapToSpeak}
       >
