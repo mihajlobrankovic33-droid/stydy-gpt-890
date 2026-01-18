@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import { X, BookOpen, Calculator, FlaskConical, Globe, Languages, History, Dna, Atom, Monitor, Music, Palette, Dumbbell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,26 @@ const cleanText = (text: string): string => {
     .replace(/#/g, '')
     .replace(/`/g, '')
     .trim();
+};
+
+// Get icon for subject
+const getSubjectIcon = (subject: string) => {
+  const s = subject.toUpperCase();
+  
+  if (s.includes("MATEMAT")) return <Calculator className="w-6 h-6" />;
+  if (s.includes("FIZIK")) return <Atom className="w-6 h-6" />;
+  if (s.includes("HEMIJ") || s.includes("KEMIJ")) return <FlaskConical className="w-6 h-6" />;
+  if (s.includes("BIOLOG")) return <Dna className="w-6 h-6" />;
+  if (s.includes("GEOGRAF")) return <Globe className="w-6 h-6" />;
+  if (s.includes("ISTORIJ") || s.includes("POVIJEST")) return <History className="w-6 h-6" />;
+  if (s.includes("SRPSKI") || s.includes("HRVAT") || s.includes("BOSANS") || s.includes("JEZIK")) return <BookOpen className="w-6 h-6" />;
+  if (s.includes("ENGLESK") || s.includes("ENGLISH") || s.includes("NEMAČ") || s.includes("FRANC")) return <Languages className="w-6 h-6" />;
+  if (s.includes("INFORMAT") || s.includes("RAČUNAR") || s.includes("PROGRAM")) return <Monitor className="w-6 h-6" />;
+  if (s.includes("MUZIK") || s.includes("GLAZB")) return <Music className="w-6 h-6" />;
+  if (s.includes("LIKOVN") || s.includes("UMJET")) return <Palette className="w-6 h-6" />;
+  if (s.includes("FIZIČK") || s.includes("SPORT") || s.includes("TJELESN")) return <Dumbbell className="w-6 h-6" />;
+  
+  return <BookOpen className="w-6 h-6" />;
 };
 
 export function FullscreenModal({
@@ -55,15 +75,21 @@ export function FullscreenModal({
 
   // Use subject first, then title - clean all markdown
   const displayTitle = cleanText(subject || title).toUpperCase();
+  const subjectIcon = getSubjectIcon(displayTitle);
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Subject title - TOP LEFT corner, no markdown */}
+      {/* Subject title with icon - TOP LEFT corner */}
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-xl font-bold text-primary tracking-wide">
-            {displayTitle}
-          </h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              {subjectIcon}
+            </div>
+            <h2 className="text-xl font-bold text-primary tracking-wide">
+              {displayTitle}
+            </h2>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -77,7 +103,7 @@ export function FullscreenModal({
           </Button>
         </div>
         {description ? (
-          <p className="text-sm text-muted-foreground mt-1">{cleanText(description)}</p>
+          <p className="text-sm text-muted-foreground mt-1 px-4 pb-2">{cleanText(description)}</p>
         ) : null}
       </header>
 
