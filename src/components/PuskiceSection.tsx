@@ -328,34 +328,7 @@ export function PuskiceSection() {
         </CardContent>
       </Card>
 
-      {/* Subject Filter / History */}
-      {subjects.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Istorija po predmetima:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedSubjectFilter === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedSubjectFilter(null)}
-            >
-              Sve ({puskice.length})
-            </Button>
-            {subjects.map((subj) => (
-              <Button
-                key={subj}
-                variant={selectedSubjectFilter === subj ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedSubjectFilter(subj)}
-              >
-                {subj} ({puskice.filter((p) => p.subject === subj).length})
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Subject filter removed per user request */}
 
       {/* Grid of Puskice */}
       {filteredPuskice.length === 0 ? (
