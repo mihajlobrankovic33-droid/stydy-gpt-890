@@ -53,14 +53,15 @@ export function FullscreenModal({
 
   if (!open) return null;
 
-  const displayTitle = cleanText(subject || title);
+  // Use subject first, then title - clean all markdown
+  const displayTitle = cleanText(subject || title).toUpperCase();
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Subject title - top left corner */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-primary uppercase tracking-wide">
+      {/* Subject title - TOP LEFT corner, no markdown */}
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h2 className="text-xl font-bold text-primary tracking-wide">
             {displayTitle}
           </h2>
           <Button
