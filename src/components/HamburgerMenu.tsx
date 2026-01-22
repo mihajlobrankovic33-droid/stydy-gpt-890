@@ -9,6 +9,7 @@ import { useLanguage, languageNames, Language } from "@/context/LanguageContext"
 import { useCustomization, avatarThemes } from "@/context/CustomizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
+import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 
 const ADMIN_PASSWORD = "MIHE26";
 
@@ -31,6 +32,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminError, setAdminError] = useState("");
   const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
+  const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -72,8 +74,8 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   };
 
   const handleOpenProModal = () => {
-    // Open modal first, then close menu (more reliable on mobile)
-    onOpenProModal();
+    // Rebuilt: open modal locally (reliable) and also keep callback available
+    setShowProUpgradeModal(true);
     setIsOpen(false);
   };
 
@@ -447,6 +449,9 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
         onClose={() => setShowProCodesAdmin(false)}
         adminPassword={ADMIN_PASSWORD}
       />
+
+      {/* Pro Upgrade Modal (local, reliable) */}
+      <ProUpgradeModal open={showProUpgradeModal} onOpenChange={setShowProUpgradeModal} />
     </>
   );
 }
