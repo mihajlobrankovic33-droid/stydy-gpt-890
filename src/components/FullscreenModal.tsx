@@ -79,11 +79,10 @@ export function FullscreenModal({
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Watermark-style: logo + subject + puškica - top left, no background */}
-      <div className="fixed top-3 left-3 z-20 flex items-center gap-1.5 opacity-50">
-        <span className="text-primary">{subjectIcon}</span>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-          {displayTitle} · Puškica
+      {/* Subject name only - top left corner */}
+      <div className="fixed top-3 left-3 z-20">
+        <span className="text-xs text-muted-foreground/50 uppercase tracking-wide">
+          {displayTitle}
         </span>
       </div>
 
