@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, BookOpen, Calculator, FlaskConical, Globe, Languages, History, Dna, Atom, Monitor, Music, Palette, Dumbbell } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -77,12 +78,13 @@ export function FullscreenModal({
   const displayTitle = cleanText(subject || title).toUpperCase();
   const subjectIcon = getSubjectIcon(displayTitle);
 
-  return (
-    <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Subject name only - top left corner */}
-      <div className="fixed top-3 left-3 z-20">
-        <span className="text-xs text-muted-foreground/50 uppercase tracking-wide">
-          {displayTitle}
+  const modal = (
+    <div className="fixed inset-0 z-[9999] bg-background flex flex-col">
+      {/* Watermark-style: icon + subject + puškica (discreet) */}
+      <div className="fixed top-3 left-3 z-20 flex items-center gap-1.5 opacity-40">
+        <span className="text-primary/70">{subjectIcon}</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+          {displayTitle} · Puškica
         </span>
       </div>
 
@@ -99,8 +101,8 @@ export function FullscreenModal({
         <X className="w-4 h-4" />
       </Button>
 
-      {/* Content - full screen */}
-      <main className="flex-1 overflow-y-auto px-4 py-12">
+      {/* Content - full screen (minimal top padding so it doesn't look like a bar) */}
+      <main className="flex-1 overflow-y-auto px-4 pt-10 pb-4">
         <div className="w-full max-w-2xl mx-auto">{children}</div>
       </main>
 
@@ -112,6 +114,8 @@ export function FullscreenModal({
       ) : null}
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
 
 export { cleanText };
