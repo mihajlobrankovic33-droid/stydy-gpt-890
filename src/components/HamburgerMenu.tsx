@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, Globe, Check } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, Globe, Check, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/hooks/useTheme";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useLanguage, languageNames, Language } from "@/context/LanguageContext";
+import { useCustomization, avatarThemes } from "@/context/CustomizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
 
@@ -15,18 +17,24 @@ interface HamburgerMenuProps {
   onOpenProModal: () => void;
   onOpenChatHistory: () => void;
   onClearHistory: () => void;
+  customSystemPrompt?: string;
+  onCustomSystemPromptChange?: (prompt: string) => void;
 }
 
-export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory }: HamburgerMenuProps) {
+export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory, customSystemPrompt = "", onCustomSystemPromptChange }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
+  const [showCharacters, setShowCharacters] = useState(false);
+  const [showGptPersonalize, setShowGptPersonalize] = useState(false);
+  const [localPrompt, setLocalPrompt] = useState(customSystemPrompt);
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
   const [adminError, setAdminError] = useState("");
   const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { settings, selectTheme } = useCustomization();
   const { toast } = useToast();
 
   const handleCheckForUpdates = async () => {
@@ -65,10 +73,31 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
 
   const handleOpenProModal = () => {
     setIsOpen(false);
-    // Small delay to ensure menu closes before modal opens
-    setTimeout(() => {
-      onOpenProModal();
-    }, 100);
+    // Use requestAnimationFrame for smoother transition
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        onOpenProModal();
+      });
+    });
+  };
+
+  const handleSelectCharacter = (themeId: string) => {
+    selectTheme(themeId);
+    toast({
+      title: `${avatarThemes.find((t) => t.id === themeId)?.emoji} Karakter promenjen!`,
+      description: `Sada koristiš ${avatarThemes.find((t) => t.id === themeId)?.name}`,
+    });
+  };
+
+  const handleSaveGptPrompt = () => {
+    if (onCustomSystemPromptChange) {
+      onCustomSystemPromptChange(localPrompt);
+      toast({
+        title: "GPT personalizovan! ✨",
+        description: "Tvoj prilagođeni prompt je sačuvan.",
+      });
+    }
+    setShowGptPersonalize(false);
   };
 
   const handleOpenChatHistory = () => {
@@ -189,6 +218,109 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
                       {language === lang && <Check className="w-4 h-4" />}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Characters Section - 6 in 3 rows */}
+            {!showCharacters ? (
+              <button
+                onClick={() => setShowCharacters(true)}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
+              >
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-foreground">Karakteri</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {avatarThemes.find(t => t.id === settings.selectedThemeId)?.emoji}
+                </span>
+              </button>
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Karakteri</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCharacters(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {avatarThemes.map((theme) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => handleSelectCharacter(theme.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        settings.selectedThemeId === theme.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80 text-foreground"
+                      }`}
+                    >
+                      <img src={theme.avatar} alt={theme.name} className="w-6 h-6 rounded-full" />
+                      <span className="truncate">{theme.name}</span>
+                      {settings.selectedThemeId === theme.id && <Check className="w-4 h-4 ml-auto flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* GPT Personalization */}
+            {!showGptPersonalize ? (
+              <button
+                onClick={() => {
+                  setLocalPrompt(customSystemPrompt);
+                  setShowGptPersonalize(true);
+                }}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
+              >
+                <MessageSquare className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-foreground">Personalizuj GPT</span>
+              </button>
+            ) : (
+              <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Personalizuj GPT</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowGptPersonalize(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Textarea
+                  placeholder="Dodaj posebne instrukcije za AI (npr. 'Odgovaraj samo na srpskom', 'Budi kratak i jasan'...)"
+                  value={localPrompt}
+                  onChange={(e) => setLocalPrompt(e.target.value)}
+                  className="min-h-[80px] text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setLocalPrompt("");
+                      if (onCustomSystemPromptChange) onCustomSystemPromptChange("");
+                      setShowGptPersonalize(false);
+                      toast({ title: "Resetovano", description: "GPT je vraćen na podrazumevano ponašanje." });
+                    }}
+                    className="flex-1"
+                  >
+                    Resetuj
+                  </Button>
+                  <Button size="sm" onClick={handleSaveGptPrompt} className="flex-1">
+                    Sačuvaj
+                  </Button>
                 </div>
               </div>
             )}

@@ -61,7 +61,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, actionType, imageUrl } = await req.json();
+    const { messages, actionType, imageUrl, customSystemPrompt } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -82,10 +82,15 @@ serve(async (req) => {
       actionInstruction = EXAM_MODE_ADDITION;
     }
 
-    // Build system message
+    // Build system message with optional custom instructions
+    let fullSystemPrompt = SYSTEM_PROMPT + actionInstruction;
+    if (customSystemPrompt && customSystemPrompt.trim()) {
+      fullSystemPrompt += `\n\n[DODATNE INSTRUKCIJE OD KORISNIKA]: ${customSystemPrompt.trim()}`;
+    }
+    
     const systemMessage = {
       role: "system",
-      content: SYSTEM_PROMPT + actionInstruction,
+      content: fullSystemPrompt,
     };
 
     // Process messages to handle images
