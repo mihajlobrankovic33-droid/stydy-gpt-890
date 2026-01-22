@@ -47,6 +47,9 @@ const Home = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [customSystemPrompt, setCustomSystemPrompt] = useState<string>(() => {
+    return localStorage.getItem('custom_system_prompt') || '';
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -122,7 +125,7 @@ const Home = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: newMessages, actionType }),
+        body: JSON.stringify({ messages: newMessages, actionType, customSystemPrompt }),
       });
 
       if (!response.ok) {
@@ -322,6 +325,11 @@ const Home = () => {
           onOpenProModal={() => setShowProModal(true)}
           onOpenChatHistory={() => setShowChatHistory(true)}
           onClearHistory={handleNewChat}
+          customSystemPrompt={customSystemPrompt}
+          onCustomSystemPromptChange={(prompt) => {
+            setCustomSystemPrompt(prompt);
+            localStorage.setItem('custom_system_prompt', prompt);
+          }}
         />
       </div>
       
