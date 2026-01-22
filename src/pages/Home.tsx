@@ -322,10 +322,7 @@ const Home = () => {
         <InstallPWAButton />
         <HamburgerMenu
           onOpenProfile={() => setShowProfileSettings(true)}
-          onOpenProModal={() => {
-            console.log("[PRO DEBUG] Home.tsx - setShowProModal(true) called!");
-            setShowProModal(true);
-          }}
+          onOpenProModal={() => setShowProModal(true)}
           onOpenChatHistory={() => setShowChatHistory(true)}
           onClearHistory={handleNewChat}
           customSystemPrompt={customSystemPrompt}
