@@ -61,6 +61,12 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
     onOpenChange(false);
   };
 
+  // Radix Dialog can call onOpenChange(true) during internal state sync.
+  // We only want to react to CLOSE requests from the dialog UI.
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) handleClose();
+  };
+
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, "").slice(0, 16);
     const groups = cleaned.match(/.{1,4}/g);
@@ -147,7 +153,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
   // Success View
   if (view === "success") {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="p-4 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 shadow-lg shadow-emerald-500/25 mb-6">
@@ -196,7 +202,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
   // Payment Form View
   if (view === "payment") {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -316,7 +322,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
   // Redeem Code View
   if (view === "redeem") {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -387,7 +393,7 @@ export function ProUpgradeModal({ open, onOpenChange }: ProUpgradeModalProps) {
 
   // Plan View (default)
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-2 border-amber-500/30 max-h-[90vh] overflow-y-auto shadow-2xl shadow-amber-500/10">
         <DialogHeader className="text-center pb-2">
           <div className="flex justify-center mb-3">

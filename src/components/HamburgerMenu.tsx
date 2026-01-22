@@ -72,12 +72,8 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   };
 
   const handleOpenProModal = () => {
-    console.log("[PRO DEBUG] handleOpenProModal called, closing menu...");
     setIsOpen(false);
-    console.log("[PRO DEBUG] Menu closed, calling onOpenProModal...");
-    // Call immediately without delay
     onOpenProModal();
-    console.log("[PRO DEBUG] onOpenProModal called!");
   };
 
   const handleSelectCharacter = (themeId: string) => {
