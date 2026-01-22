@@ -65,7 +65,10 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
 
   const handleOpenProModal = () => {
     setIsOpen(false);
-    onOpenProModal();
+    // Small delay to ensure menu closes before modal opens
+    setTimeout(() => {
+      onOpenProModal();
+    }, 100);
   };
 
   const handleOpenChatHistory = () => {
