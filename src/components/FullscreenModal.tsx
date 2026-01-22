@@ -79,31 +79,29 @@ export function FullscreenModal({
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Minimal header - small logo + subject name top-left, X top-right */}
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded bg-primary/10 text-primary">
-            {subjectIcon}
-          </div>
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {displayTitle}
-          </span>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="h-7 w-7"
-          aria-label="Zatvori"
-          title="Zatvori"
-        >
-          <X className="w-4 h-4" />
-        </Button>
+      {/* Watermark-style: logo + subject + puškica - top left, no background */}
+      <div className="fixed top-3 left-3 z-20 flex items-center gap-1.5 opacity-50">
+        <span className="text-primary">{subjectIcon}</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+          {displayTitle} · Puškica
+        </span>
       </div>
 
-      {/* Content - full puskica */}
-      <main className="flex-1 overflow-y-auto px-4 pb-4">
+      {/* Close button - top right */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onClose}
+        className="fixed top-2 right-2 z-20 h-7 w-7 opacity-50 hover:opacity-100"
+        aria-label="Zatvori"
+        title="Zatvori"
+      >
+        <X className="w-4 h-4" />
+      </Button>
+
+      {/* Content - full screen */}
+      <main className="flex-1 overflow-y-auto px-4 py-12">
         <div className="w-full max-w-2xl mx-auto">{children}</div>
       </main>
 
