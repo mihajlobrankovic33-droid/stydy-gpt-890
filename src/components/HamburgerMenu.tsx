@@ -72,8 +72,9 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   };
 
   const handleOpenProModal = () => {
-    setIsOpen(false);
+    // Open modal first, then close menu (more reliable on mobile)
     onOpenProModal();
+    setIsOpen(false);
   };
 
   const handleSelectCharacter = (themeId: string) => {
@@ -164,6 +165,7 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               </div>
             ) : (
               <button
+                type="button"
                 onClick={handleOpenProModal}
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-left hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
               >
