@@ -79,37 +79,34 @@ export function FullscreenModal({
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Subject title with icon - TOP LEFT corner */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+      {/* Compact header - logo + subject in top-left */}
+      <header className="sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-5 py-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
               {subjectIcon}
             </div>
-            <h2 className="text-xl font-bold text-primary tracking-wide">
+            <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               {displayTitle}
-            </h2>
+            </span>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8"
             aria-label="Zatvori"
             title="Zatvori"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
-        {description ? (
-          <p className="text-sm text-muted-foreground mt-1 px-4 pb-2">{cleanText(description)}</p>
-        ) : null}
       </header>
 
-      {/* Content - centered */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 flex items-start justify-center">
-        <div className="w-full max-w-2xl">{children}</div>
+      {/* Content - starts immediately below header */}
+      <main className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="w-full max-w-2xl mx-auto">{children}</div>
       </main>
 
       {/* Footer - fixed at bottom */}
