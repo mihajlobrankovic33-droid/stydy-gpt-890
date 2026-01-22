@@ -79,25 +79,35 @@ export function FullscreenModal({
 
   return (
     <div className="fixed inset-0 z-[110] bg-background flex flex-col">
-      {/* Close button only - top right corner */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onClose}
-        className="absolute top-3 right-3 z-20 h-8 w-8 bg-background/80 backdrop-blur-sm"
-        aria-label="Zatvori"
-        title="Zatvori"
-      >
-        <X className="w-5 h-5" />
-      </Button>
+      {/* Minimal header - small logo + subject name top-left, X top-right */}
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center gap-2">
+          <div className="p-1 rounded bg-primary/10 text-primary">
+            {subjectIcon}
+          </div>
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {displayTitle}
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-7 w-7"
+          aria-label="Zatvori"
+          title="Zatvori"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
 
-      {/* Content - full screen, no header */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 pt-14">
+      {/* Content - full puskica */}
+      <main className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="w-full max-w-2xl mx-auto">{children}</div>
       </main>
 
-      {/* Footer - fixed at bottom */}
+      {/* Footer */}
       {footer ? (
         <footer className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm safe-area-bottom">
           <div className="px-4 py-3 max-w-2xl mx-auto w-full">{footer}</div>
