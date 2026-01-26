@@ -9,6 +9,7 @@ import { FullscreenModal, cleanText } from "@/components/FullscreenModal";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface PuskiceItem {
   id: string;
@@ -20,20 +21,9 @@ interface PuskiceItem {
 
 const DAILY_LIMIT = 5;
 
-// Group puskice by subject
-function groupBySubject(items: PuskiceItem[]): Record<string, PuskiceItem[]> {
-  return items.reduce((acc, item) => {
-    const subject = item.subject || "Ostalo";
-    if (!acc[subject]) {
-      acc[subject] = [];
-    }
-    acc[subject].push(item);
-    return acc;
-  }, {} as Record<string, PuskiceItem[]>);
-}
-
 export function PuskiceSection() {
   const { isPro, isLifetimePro, user } = useSupabaseAuth();
+  const { t } = useLanguage();
   const hasUnlimitedAccess = isPro;
   
   const [puskice, setPuskice] = useState<PuskiceItem[]>([]);
@@ -47,6 +37,18 @@ export function PuskiceSection() {
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Group puskice by subject
+  const groupBySubject = (items: PuskiceItem[]): Record<string, PuskiceItem[]> => {
+    return items.reduce((acc, item) => {
+      const subjectName = item.subject || t.other;
+      if (!acc[subjectName]) {
+        acc[subjectName] = [];
+      }
+      acc[subjectName].push(item);
+      return acc;
+    }, {} as Record<string, PuskiceItem[]>);
+  };
 
   // Compress image client-side for speed (smaller upload to AI)
   const compressImageToDataUrl = (file: File, maxSide = 1280, quality = 0.82): Promise<string> => {
@@ -111,7 +113,7 @@ export function PuskiceSection() {
   const remaining = Math.max(0, DAILY_LIMIT - todayCount);
 
   // Group puskice by subject for history view
-  const groupedPuskice = useMemo(() => groupBySubject(puskice), [puskice]);
+  const groupedPuskice = useMemo(() => groupBySubject(puskice), [puskice, t.other]);
   const sortedSubjects = useMemo(() => 
     Object.keys(groupedPuskice).sort((a, b) => a.localeCompare(b)), 
     [groupedPuskice]
@@ -120,13 +122,13 @@ export function PuskiceSection() {
   // Track which subjects are expanded
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   
-  const toggleSubject = (subject: string) => {
+  const toggleSubject = (subjectName: string) => {
     setExpandedSubjects(prev => {
       const next = new Set(prev);
-      if (next.has(subject)) {
-        next.delete(subject);
+      if (next.has(subjectName)) {
+        next.delete(subjectName);
       } else {
-        next.add(subject);
+        next.add(subjectName);
       }
       return next;
     });
@@ -162,8 +164,8 @@ export function PuskiceSection() {
   const handleExtractAndSave = async () => {
     if (!subject.trim()) {
       toast({
-        title: "Greška",
-        description: "Molimo unesi naziv predmeta.",
+        title: t.error,
+        description: t.pleaseEnterSubject,
         variant: "destructive",
       });
       return;
@@ -171,8 +173,8 @@ export function PuskiceSection() {
 
     if (!imageUrl) {
       toast({
-        title: "Greška",
-        description: "Molimo dodaj sliku za ekstrakciju.",
+        title: t.error,
+        description: t.pleaseAddImage,
         variant: "destructive",
       });
       return;
@@ -180,8 +182,8 @@ export function PuskiceSection() {
 
     if (!user) {
       toast({
-        title: "Greška",
-        description: "Morate biti prijavljeni.",
+        title: t.error,
+        description: t.mustBeLoggedIn,
         variant: "destructive",
       });
       return;
@@ -206,7 +208,7 @@ export function PuskiceSection() {
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || "Ekstrakcija nije uspjela");
+        throw new Error(result.error || t.extractionFailed);
       }
 
       // Save to database with detected subject from AI
@@ -227,14 +229,14 @@ export function PuskiceSection() {
       setShowCreateModal(false);
 
       toast({
-        title: "Uspješno! ✨",
-        description: "AI je ekstrahirao informacije i kreirao puškicu.",
+        title: t.success,
+        description: t.aiExtractedInfo,
       });
     } catch (error) {
       console.error("Extraction error:", error);
       toast({
-        title: "Greška",
-        description: error instanceof Error ? error.message : "Nešto nije u redu.",
+        title: t.error,
+        description: error instanceof Error ? error.message : t.somethingWentWrong,
         variant: "destructive",
       });
     } finally {
@@ -247,8 +249,8 @@ export function PuskiceSection() {
 
     if (error) {
       toast({
-        title: "Greška",
-        description: "Nije moguće obrisati puškicu.",
+        title: t.error,
+        description: t.cannotDeletePuskica,
         variant: "destructive",
       });
       return;
@@ -256,8 +258,8 @@ export function PuskiceSection() {
 
     await fetchPuskice();
     toast({
-      title: "Obrisano",
-      description: "Puškica je obrisana.",
+      title: t.deleted,
+      description: t.puskicaDeleted,
     });
   };
 
@@ -267,17 +269,17 @@ export function PuskiceSection() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-bold text-foreground">Moje Puškice</h2>
+          <h2 className="text-lg font-bold text-foreground">{t.myPuskice}</h2>
         </div>
         <div className="flex items-center gap-3">
           {hasUnlimitedAccess ? (
             <span className="flex items-center gap-1 text-sm text-amber-400 font-semibold">
               <Shield className="w-4 h-4" />
-              {isLifetimePro ? "Lifetime Pro" : "Pro"} - Unlimited
+              {isLifetimePro ? t.lifetimePro : "Pro"} - {t.unlimited}
             </span>
           ) : (
             <span className="text-sm text-muted-foreground">
-              Preostalo danas: <span className="font-bold text-primary">{remaining}/5</span>
+              {t.remainingToday}: <span className="font-bold text-primary">{remaining}/5</span>
             </span>
           )}
           <Button
@@ -286,7 +288,7 @@ export function PuskiceSection() {
             className="bg-gradient-to-r from-primary to-accent text-white shadow-md hover:shadow-lg transition-all"
           >
             <Plus className="w-4 h-4 mr-1" />
-            Nova
+            {t.newNote}
           </Button>
         </div>
       </div>
@@ -296,14 +298,14 @@ export function PuskiceSection() {
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-foreground">AI Brza Puškica</h3>
+            <h3 className="font-semibold text-foreground">{t.aiFastPuskica}</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Uploaduj sliku i unesi predmet - AI automatski ekstrahira formule, definicije, datume i ključne osobe!
+            {t.uploadImageDescription}
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
-              placeholder="Naziv predmeta (npr. Matematika)"
+              placeholder={t.subjectPlaceholder}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="flex-1"
@@ -314,7 +316,7 @@ export function PuskiceSection() {
               className="gap-2"
             >
               <Upload className="w-4 h-4" />
-              {imageUrl ? "Promijeni sliku" : "Dodaj sliku"}
+              {imageUrl ? t.changeImage : t.addImage}
             </Button>
             <Button
               onClick={handleExtractAndSave}
@@ -324,12 +326,12 @@ export function PuskiceSection() {
               {isExtracting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Ekstrahiram...
+                  {t.extracting}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Kreiraj
+                  {t.create}
                 </>
               )}
             </Button>
@@ -359,8 +361,8 @@ export function PuskiceSection() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">Istorija po Predmetima</h3>
-          <span className="text-sm text-muted-foreground">({puskice.length} ukupno)</span>
+          <h3 className="text-lg font-semibold text-foreground">{t.historyBySubjects}</h3>
+          <span className="text-sm text-muted-foreground">({puskice.length} {t.total})</span>
         </div>
         
         {puskice.length === 0 ? (
@@ -370,10 +372,10 @@ export function PuskiceSection() {
                 <Sparkles className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Nemaš još puškica
+                {t.noPuskiceYet}
               </h3>
               <p className="text-muted-foreground mb-4">
-                Uploaduj sliku i unesi predmet gore za brzu AI ekstrakciju!
+                {t.uploadImageForExtraction}
               </p>
             </CardContent>
           </Card>
@@ -395,7 +397,7 @@ export function PuskiceSection() {
                         <div>
                           <h4 className="font-semibold text-foreground">{subjectName}</h4>
                           <p className="text-xs text-muted-foreground">
-                            {groupedPuskice[subjectName].length} puškic{groupedPuskice[subjectName].length === 1 ? 'a' : 'e'}
+                            {groupedPuskice[subjectName].length} {t.puskiceCount}
                           </p>
                         </div>
                       </div>
@@ -464,12 +466,12 @@ export function PuskiceSection() {
       {/* Quick View Modal - Updated Layout */}
       <FullscreenModal
         open={!!showQuickView}
-        title={showQuickView?.title ?? "Puškica"}
+        title={showQuickView?.title ?? t.puskica}
         subject={showQuickView?.subject}
         onClose={() => setShowQuickView(null)}
         footer={
           <Button variant="outline" onClick={() => setShowQuickView(null)} className="w-full">
-            Zatvori
+            {t.close}
           </Button>
         }
       >

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Lightbulb, FileText, HelpCircle, BookOpen, GraduationCap } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export type ActionType = "explain" | "summary" | "quiz" | "homework" | "exam";
 
@@ -8,45 +9,47 @@ interface QuickActionsProps {
   disabled?: boolean;
 }
 
-const actions = [
-  {
-    type: "explain" as ActionType,
-    label: "Explain Simply",
-    icon: Lightbulb,
-    prompt: "Please explain this topic in the simplest way possible, step by step:",
-    color: "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 hover:border-amber-500/50",
-  },
-  {
-    type: "summary" as ActionType,
-    label: "Create Summary",
-    icon: FileText,
-    prompt: "Please create a clear, organized summary of this topic:",
-    color: "bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 border-sky-500/30 hover:border-sky-500/50",
-  },
-  {
-    type: "quiz" as ActionType,
-    label: "Make a Quiz",
-    icon: HelpCircle,
-    prompt: "Please create a short quiz with 5 multiple-choice questions about:",
-    color: "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 hover:border-emerald-500/50",
-  },
-  {
-    type: "homework" as ActionType,
-    label: "Help with Homework",
-    icon: BookOpen,
-    prompt: "I need help with my homework. Please guide me through this problem:",
-    color: "bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/30 hover:border-violet-500/50",
-  },
-  {
-    type: "exam" as ActionType,
-    label: "Exam Mode",
-    icon: GraduationCap,
-    prompt: "I'm preparing for an exam. Please give me direct, clear answers:",
-    color: "bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30 hover:border-red-500/50",
-  },
-];
-
 export const QuickActions = ({ onAction, disabled }: QuickActionsProps) => {
+  const { t } = useLanguage();
+
+  const actions = [
+    {
+      type: "explain" as ActionType,
+      label: t.explainSimply,
+      icon: Lightbulb,
+      prompt: t.explainPrompt,
+      color: "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 hover:border-amber-500/50",
+    },
+    {
+      type: "summary" as ActionType,
+      label: t.createSummary,
+      icon: FileText,
+      prompt: t.summaryPrompt,
+      color: "bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 border-sky-500/30 hover:border-sky-500/50",
+    },
+    {
+      type: "quiz" as ActionType,
+      label: t.makeQuiz,
+      icon: HelpCircle,
+      prompt: t.quizPrompt,
+      color: "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 hover:border-emerald-500/50",
+    },
+    {
+      type: "homework" as ActionType,
+      label: t.helpWithHomework,
+      icon: BookOpen,
+      prompt: t.homeworkPrompt,
+      color: "bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/30 hover:border-violet-500/50",
+    },
+    {
+      type: "exam" as ActionType,
+      label: t.examMode,
+      icon: GraduationCap,
+      prompt: t.examPrompt,
+      color: "bg-red-500/20 text-red-400 hover:bg-red-500/30 border-red-500/30 hover:border-red-500/50",
+    },
+  ];
+
   return (
     <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center">
       {actions.map((action) => (

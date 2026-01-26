@@ -19,6 +19,7 @@ import { ChatHistoryModal, detectSubject, generateTitle } from "@/components/Cha
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
+import { useLanguage } from "@/context/LanguageContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageCircle, FileText, Users } from "lucide-react";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
@@ -56,6 +57,7 @@ const Home = () => {
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const isOnline = useOfflineStatus();
+  const { t } = useLanguage();
 
   // Anti-tamper: Disable right-click and F12
   useEffect(() => {
@@ -377,7 +379,7 @@ const Home = () => {
               }`}
             >
               <MessageCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">AI </span>Chat
+              {t.aiChat}
             </button>
             <button
               onClick={() => setActiveTab("puskice")}
@@ -388,7 +390,7 @@ const Home = () => {
               }`}
             >
               <FileText className="w-4 h-4" />
-              Puškice
+              {t.puskiceTab}
             </button>
             <button
               onClick={() => setActiveTab("messages")}
@@ -399,7 +401,7 @@ const Home = () => {
               }`}
             >
               <Users className="w-4 h-4" />
-              Poruke
+              {t.messagesTab}
             </button>
           </div>
         </div>

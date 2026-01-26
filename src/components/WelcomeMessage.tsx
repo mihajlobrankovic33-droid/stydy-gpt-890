@@ -1,13 +1,15 @@
 import { BookOpen, Brain, Target } from "lucide-react";
 import { useCustomization } from "@/context/CustomizationContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const WelcomeMessage = () => {
   const { getAvatarUrl, currentTheme } = useCustomization();
+  const { t } = useLanguage();
   
   const features = [
-    { icon: BookOpen, text: "Get homework help step-by-step" },
-    { icon: Brain, text: "Understand difficult topics easily" },
-    { icon: Target, text: "Practice with quizzes" },
+    { icon: BookOpen, text: t.homeworkHelp },
+    { icon: Brain, text: t.understandTopics },
+    { icon: Target, text: t.practiceQuizzes },
   ];
 
   return (
@@ -22,12 +24,11 @@ export const WelcomeMessage = () => {
         </div>
         
         <h2 className="text-2xl font-bold text-foreground mb-3">
-          Hey there! 👋
+          {t.heyThere}
         </h2>
         
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          I'm {currentTheme.appName}, your personal AI tutor. I'm here to help you learn, 
-          understand tricky topics, and ace your studies. What would you like to learn today?
+          {t.personalTutor}
         </p>
 
         <div className="space-y-3">
@@ -48,7 +49,7 @@ export const WelcomeMessage = () => {
         </div>
 
         <p className="text-xs text-muted-foreground mt-8">
-          Try typing a question or use the quick action buttons below ✨
+          {t.tryTyping}
         </p>
       </div>
     </div>
