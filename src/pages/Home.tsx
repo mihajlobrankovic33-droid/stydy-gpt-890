@@ -51,6 +51,7 @@ const Home = () => {
     return localStorage.getItem('custom_system_prompt') || '';
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
@@ -108,9 +109,13 @@ const Home = () => {
 
   // Auto-scroll to bottom on new messages (robust for streaming + mobile)
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
-    });
+    const scrollToBottom = () => {
+      if (viewportRef.current) {
+        viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
+      }
+    };
+    // Use requestAnimationFrame for smooth scrolling
+    const id = requestAnimationFrame(scrollToBottom);
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading]);
 
@@ -409,15 +414,15 @@ const Home = () => {
                 </div>
               </div>
             ) : (
-              <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
-                <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-6">
+              <ScrollArea className="flex-1 min-h-0" ref={scrollRef} viewportRef={viewportRef}>
+                <div className="w-full max-w-4xl mx-auto space-y-4 p-4 pb-24">
                   {messages.map((message, index) => (
                     <ChatMessage key={index} message={message} />
                   ))}
                   {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                     <TypingIndicator />
                   )}
-                  <div ref={bottomRef} />
+                  <div ref={bottomRef} className="h-1" />
                 </div>
               </ScrollArea>
             )}

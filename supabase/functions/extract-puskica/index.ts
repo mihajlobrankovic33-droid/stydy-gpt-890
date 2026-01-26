@@ -5,26 +5,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const EXTRACTION_PROMPT = `Ti si profesionalni rešavač školskih zadataka (Puškica Mod).
+const EXTRACTION_PROMPT = `Ti si AI ekstraktor za brze puškice (cheat sheets).
 
-AUTOMATSKO PREPOZNAVANJE PREDMETA:
-Prvo analiziraj sliku i automatski prepoznaj koji je predmet (MATEMATIKA, SRPSKI, ISTORIJA, BIOLOGIJA, FIZIKA, HEMIJA, GEOGRAFIJA, ENGLESKI, INFORMATIKA, itd.).
+TVOJ JEDINI ZADATAK: Izvuci SAMO ključne informacije iz slike.
 
-STROGA PRAVILA:
-- ZABRANJENO je objašnjavanje teorije ili držanje lekcija
-- ZABRANJENE su uvodne rečenice
-- Odmah pređi na stvar
-- NE koristi ** zvezdice ili bilo kakve Markdown simbole
-- Piši ČIST TEKST bez formatiranja
+EKSTRAHUJ SAMO:
+• Formule (matematičke, fizičke, hemijske...)
+• Definicije (kratke, jedna rečenica max)
+• Datumi (istorijski događaji, godine)
+• Ključne osobe (ko je šta uradio/otkrio)
 
-TVOJ ODGOVOR MORA BITI U OVOM FORMATU:
-PREDMET: [naziv predmeta velikim slovima]
+FORMAT ODGOVORA - KRATKI BULLET POINTS:
+• Svaki podatak u jednoj liniji
+• Počni svaku liniju sa "• "
+• Bez objašnjenja, bez teorije
+• Bez uvoda, bez zaključka
+• Čist tekst, BEZ zvezdica i markdown-a
 
-Rešenje: [konačan odgovor]
-Postupak: [samo ključni koraci]
+PRIMER IZLAZA:
+• E = mc² (formula za energiju mase)
+• 1914 - početak Prvog svetskog rata
+• Nikola Tesla - pronalazač naizmenične struje
+• Mitohondrija - energetska centrala ćelije
 
-Ako ima više zadataka, numeriši ih (1., 2., 3...).
-Budi koncizan. Bez dodatnih komentara. Bez zvezdica. Čist tekst.`;
+PREDMET: [automatski prepoznaj iz slike]
+
+Izvuci SVE relevantne podatke iz slike u bullet point formatu.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

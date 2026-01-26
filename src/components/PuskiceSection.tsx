@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProUpgradeModal } from "./ProUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Eye, Trash2, FileText, Sparkles, Shield, X, Loader2, Upload, BookOpen } from "lucide-react";
+import { Plus, Eye, Trash2, FileText, Sparkles, Shield, X, Loader2, Upload, BookOpen, ChevronDown, ChevronRight, History } from "lucide-react";
 import { FullscreenModal, cleanText } from "@/components/FullscreenModal";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PuskiceItem {
   id: string;
@@ -18,6 +19,18 @@ interface PuskiceItem {
 }
 
 const DAILY_LIMIT = 5;
+
+// Group puskice by subject
+function groupBySubject(items: PuskiceItem[]): Record<string, PuskiceItem[]> {
+  return items.reduce((acc, item) => {
+    const subject = item.subject || "Ostalo";
+    if (!acc[subject]) {
+      acc[subject] = [];
+    }
+    acc[subject].push(item);
+    return acc;
+  }, {} as Record<string, PuskiceItem[]>);
+}
 
 export function PuskiceSection() {
   const { isPro, isLifetimePro, user } = useSupabaseAuth();
@@ -31,7 +44,7 @@ export function PuskiceSection() {
   const [subject, setSubject] = useState("");
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string | null>(null);
+  
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -97,13 +110,27 @@ export function PuskiceSection() {
 
   const remaining = Math.max(0, DAILY_LIMIT - todayCount);
 
-  // Get unique subjects for history filter
-  const subjects = [...new Set(puskice.map((p) => p.subject).filter(Boolean))] as string[];
-
-  // Filter puskice by selected subject
-  const filteredPuskice = selectedSubjectFilter
-    ? puskice.filter((p) => p.subject === selectedSubjectFilter)
-    : puskice;
+  // Group puskice by subject for history view
+  const groupedPuskice = useMemo(() => groupBySubject(puskice), [puskice]);
+  const sortedSubjects = useMemo(() => 
+    Object.keys(groupedPuskice).sort((a, b) => a.localeCompare(b)), 
+    [groupedPuskice]
+  );
+  
+  // Track which subjects are expanded
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+  
+  const toggleSubject = (subject: string) => {
+    setExpandedSubjects(prev => {
+      const next = new Set(prev);
+      if (next.has(subject)) {
+        next.delete(subject);
+      } else {
+        next.add(subject);
+      }
+      return next;
+    });
+  };
 
   const handleCreate = () => {
     if (!hasUnlimitedAccess && todayCount >= DAILY_LIMIT) {
@@ -328,71 +355,102 @@ export function PuskiceSection() {
         </CardContent>
       </Card>
 
-      {/* Subject filter removed per user request */}
-
-      {/* Grid of Puskice */}
-      {filteredPuskice.length === 0 ? (
-        <Card className="border-dashed border-2 border-border bg-card/50">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-4 rounded-full bg-primary/10 mb-4">
-              <Sparkles className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {selectedSubjectFilter ? `Nema puškica za "${selectedSubjectFilter}"` : "Nemaš još puškica"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Uploaduj sliku i unesi predmet gore za brzu AI ekstrakciju!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPuskice.map((item) => (
-            <Card
-              key={item.id}
-              className="group border-border bg-card hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10"
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-foreground line-clamp-1">
-                    {item.title}
-                  </CardTitle>
-                  {item.subject && (
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                      {item.subject}
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-4 mb-4 whitespace-pre-wrap">
-                  {item.content}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowQuickView(item)}
-                    className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Pogledaj
-                  </Button>
-                  {/* Image is intentionally not stored in DB */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* History Section - Organized by Subject */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold text-foreground">Istorija po Predmetima</h3>
+          <span className="text-sm text-muted-foreground">({puskice.length} ukupno)</span>
         </div>
-      )}
+        
+        {puskice.length === 0 ? (
+          <Card className="border-dashed border-2 border-border bg-card/50">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="p-4 rounded-full bg-primary/10 mb-4">
+                <Sparkles className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Nemaš još puškica
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Uploaduj sliku i unesi predmet gore za brzu AI ekstrakciju!
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {sortedSubjects.map((subjectName) => (
+              <Collapsible 
+                key={subjectName} 
+                open={expandedSubjects.has(subjectName)}
+                onOpenChange={() => toggleSubject(subjectName)}
+              >
+                <Card className="border-border bg-card overflow-hidden">
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <BookOpen className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground">{subjectName}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {groupedPuskice[subjectName].length} puškic{groupedPuskice[subjectName].length === 1 ? 'a' : 'e'}
+                          </p>
+                        </div>
+                      </div>
+                      {expandedSubjects.has(subjectName) ? (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="border-t border-border divide-y divide-border">
+                      {groupedPuskice[subjectName].map((item) => (
+                        <div key={item.id} className="p-4 hover:bg-muted/30 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-medium text-foreground text-sm mb-1 line-clamp-1">
+                                {item.title}
+                              </h5>
+                              <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap">
+                                {item.content}
+                              </p>
+                              <span className="text-xs text-muted-foreground/70 mt-1 block">
+                                {new Date(item.created_at).toLocaleDateString('sr-RS')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowQuickView(item)}
+                                className="h-8 w-8 text-primary hover:bg-primary/10"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(item.id)}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Hidden image picker */}
       <input
