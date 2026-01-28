@@ -7,3 +7,7 @@ verify_jwt = false
 [functions.extract-puskica]
 enabled = true
 verify_jwt = false
+
+[functions.find-user]
+enabled = true
+verify_jwt = false
