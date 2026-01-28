@@ -6,7 +6,6 @@ import { QuickActions, ActionType } from "@/components/QuickActions";
 import { WelcomeMessage } from "@/components/WelcomeMessage";
 
 import { AdminPanel } from "@/components/AdminPanel";
-import { AdminPasswordModal } from "@/components/AdminPasswordModal";
 
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PuskiceSection } from "@/components/PuskiceSection";
@@ -42,8 +41,6 @@ const Home = () => {
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
   const [activeTab, setActiveTab] = useState<"chat" | "puskice" | "messages">("chat");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(false);
@@ -55,7 +52,7 @@ const Home = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { user, profile, isLoading: authLoading, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
+  const { user, profile, isLoading: authLoading, isPro, isLifetimePro, isAdmin, daysRemaining, signOut } = useSupabaseAuth();
   const isOnline = useOfflineStatus();
   const { t } = useLanguage();
 
@@ -67,13 +64,11 @@ const Home = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Admin panel shortcut: Ctrl+A (secret shortcut)
+      // Admin panel shortcut: Ctrl+A (secret shortcut) - only for verified admins
       if (e.ctrlKey && !e.shiftKey && !e.metaKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (isAdminAuthenticated) {
+        if (isAdmin) {
           setShowAdminPanel(prev => !prev);
-        } else {
-          setShowAdminPassword(true);
         }
         return;
       }
@@ -102,12 +97,7 @@ const Home = () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isAdminAuthenticated, showAdminPanel]);
-
-  const handleAdminPasswordSuccess = () => {
-    setIsAdminAuthenticated(true);
-    setShowAdminPanel(true);
-  };
+  }, [isAdmin, showAdminPanel]);
 
   // Auto-scroll to bottom on new messages (robust for streaming + mobile)
   useEffect(() => {
@@ -355,12 +345,6 @@ const Home = () => {
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal open={showProModal} onOpenChange={setShowProModal} />
       
-      {/* Admin Password Modal */}
-      <AdminPasswordModal 
-        open={showAdminPassword} 
-        onOpenChange={setShowAdminPassword}
-        onSuccess={handleAdminPasswordSuccess}
-      />
       
       {/* Admin Panel */}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />

@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
-const SECRET_ADMIN_CODE = "MIHAJLO-BOSS";
 const FREE_DAILY_LIMIT = 5;
 
 interface Profile {
@@ -22,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isPro: boolean;
   isLifetimePro: boolean;
+  isAdmin: boolean;
   daysRemaining: number | null;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -30,6 +30,7 @@ interface AuthContextType {
   activateProWithCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   activateProWithPayment: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  checkAdminStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +48,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   const translateAuthError = useCallback((message?: string) => {
@@ -115,6 +117,27 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(profileData);
   }, [user, ensureProfile]);
 
+  // Check admin status via edge function (server-side validation)
+  const checkAdminStatus = useCallback(async (): Promise<boolean> => {
+    if (!session) return false;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('check-admin');
+      
+      if (error) {
+        console.error("Error checking admin status:", error);
+        return false;
+      }
+      
+      const adminStatus = data?.isAdmin === true;
+      setIsAdmin(adminStatus);
+      return adminStatus;
+    } catch (err) {
+      console.error("Error checking admin status:", err);
+      return false;
+    }
+  }, [session]);
+
   // Check if subscription is still active
   const checkProStatus = useCallback((profileData: Profile | null): { isPro: boolean; isLifetime: boolean; daysRemaining: number | null } => {
     if (!profileData) return { isPro: false, isLifetime: false, daysRemaining: null };
@@ -162,6 +185,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
           }, 0);
         } else {
           setProfile(null);
+          setIsAdmin(false);
         }
       }
     );
@@ -179,6 +203,13 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, [ensureProfile]);
+
+  // Check admin status when session changes
+  useEffect(() => {
+    if (session) {
+      checkAdminStatus();
+    }
+  }, [session, checkAdminStatus]);
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -242,30 +273,30 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsAdmin(false);
   };
 
   const activateProWithCode = async (code: string): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: "Niste prijavljeni" };
     
-    if (code.toUpperCase() === SECRET_ADMIN_CODE) {
-      // Lifetime Pro - no expiry date
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_pro: true, 
-          subscription_expiry_date: null 
-        })
-        .eq('user_id', user.id);
-      
-      if (error) {
-        return { success: false, error: error.message };
+    // Call server-side edge function to redeem code
+    const { data, error } = await supabase.functions.invoke('redeem-pro-code', {
+      body: { 
+        code: code.toUpperCase().trim(),
+        deviceId: localStorage.getItem('device_id') || 'unknown'
       }
-      
-      await refreshProfile();
-      return { success: true };
+    });
+    
+    if (error) {
+      return { success: false, error: error.message };
     }
     
-    return { success: false, error: "Neispravan kod" };
+    if (data?.error) {
+      return { success: false, error: data.error };
+    }
+    
+    await refreshProfile();
+    return { success: true };
   };
 
   const activateProWithPayment = async () => {
@@ -303,6 +334,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       isPro: proStatus.isPro,
       isLifetimePro: proStatus.isLifetime,
+      isAdmin,
       daysRemaining: proStatus.daysRemaining,
       signInWithGoogle,
       signInWithEmail,
@@ -311,6 +343,7 @@ export const SupabaseAuthProvider = ({ children }: { children: ReactNode }) => {
       activateProWithCode,
       activateProWithPayment,
       refreshProfile,
+      checkAdminStatus,
     }}>
       {children}
     </AuthContext.Provider>
