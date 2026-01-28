@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { AdminPanel } from "@/components/AdminPanel";
 
-const ADMIN_EMAIL = "tvoj-mihajlobrankovic33@gmail.com";
+const ADMIN_EMAIL = "mihajlobrankovic33@gmail.com";
 
 export default function Admin() {
   const { user, isLoading } = useSupabaseAuth();
