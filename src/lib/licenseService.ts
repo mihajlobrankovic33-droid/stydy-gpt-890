@@ -48,103 +48,63 @@ export const fetchAllLicenses = async (): Promise<License[]> => {
   return (data || []) as unknown as License[];
 };
 
-// Validate license key and check device lock
+// Validate license key and check device lock via edge function
 export const validateLicense = async (code: string): Promise<{
   valid: boolean;
   license?: License;
   error?: string;
+  expired?: boolean;
 }> => {
-  const { data, error } = await supabase
-    .from('licenses')
-    .select('*')
-    .eq('unique_code', code.toUpperCase().trim())
-    .maybeSingle();
+  const deviceId = getDeviceId();
+  
+  const { data, error } = await supabase.functions.invoke('validate-license', {
+    body: {
+      unique_code: code,
+      device_id: deviceId
+    }
+  });
 
   if (error) {
     console.error('Error validating license:', error);
     return { valid: false, error: 'Greška pri proveri ključa.' };
   }
 
-  if (!data) {
-    return { valid: false, error: 'Neispravan licencni ključ.' };
-  }
-
-  const license = data as unknown as License;
-
-  // Check if active
-  if (!license.is_active) {
-    return { valid: false, error: 'Pristup je deaktiviran. Kontaktiraj Mihajla.' };
-  }
-
-  // Check expiry (skip for admin)
-  if (license.unique_code !== ADMIN_CODE && license.expiry_date) {
-    const expiryDate = new Date(license.expiry_date);
-    if (expiryDate < new Date()) {
-      return { valid: false, error: 'Vaš paket je istekao. Kontaktirajte Mihajla za novi paket.' };
-    }
-  }
-
-  const currentDeviceId = getDeviceId();
-
-  // Check device lock
-  if (license.device_id && license.device_id !== currentDeviceId) {
+  if (!data.valid) {
     return { 
       valid: false, 
-      error: 'Ovaj ključ je već povezan sa drugim uređajem. Kontaktiraj Mihajla.' 
+      error: data.error || 'Neispravan licencni ključ.',
+      expired: data.expired
     };
   }
 
-  // Lock device if not locked yet
-  if (!license.device_id) {
-    const { error: updateError } = await supabase
-      .from('licenses')
-      .update({ device_id: currentDeviceId })
-      .eq('id', license.id);
-
-    if (updateError) {
-      console.error('Error locking device:', updateError);
-    } else {
-      license.device_id = currentDeviceId;
-    }
-  }
-
-  return { valid: true, license };
+  return { valid: true, license: data.license as License };
 };
 
-// Check if license is still valid (for periodic checks)
+// Check if license is still valid (for periodic checks) via edge function
 export const checkLicenseStatus = async (code: string): Promise<{
   valid: boolean;
   expired?: boolean;
   error?: string;
 }> => {
-  const { data, error } = await supabase
-    .from('licenses')
-    .select('is_active, expiry_date, device_id, unique_code')
-    .eq('unique_code', code.toUpperCase().trim())
-    .maybeSingle();
+  const deviceId = getDeviceId();
+  
+  const { data, error } = await supabase.functions.invoke('validate-license', {
+    body: {
+      unique_code: code,
+      device_id: deviceId
+    }
+  });
 
-  if (error || !data) {
+  if (error) {
     return { valid: false, error: 'Ključ nije pronađen.' };
   }
 
-  const license = data as unknown as Pick<License, 'is_active' | 'expiry_date' | 'device_id' | 'unique_code'>;
-
-  if (!license.is_active) {
-    return { valid: false, error: 'Pristup je deaktiviran.' };
-  }
-
-  // Check expiry (skip for admin)
-  if (license.unique_code !== ADMIN_CODE && license.expiry_date) {
-    const expiryDate = new Date(license.expiry_date);
-    if (expiryDate < new Date()) {
-      return { valid: false, expired: true, error: 'Vaš paket je istekao.' };
-    }
-  }
-
-  // Check device
-  const currentDeviceId = getDeviceId();
-  if (license.device_id && license.device_id !== currentDeviceId) {
-    return { valid: false, error: 'Ključ je povezan sa drugim uređajem.' };
+  if (!data.valid) {
+    return { 
+      valid: false, 
+      error: data.error,
+      expired: data.expired
+    };
   }
 
   return { valid: true };
