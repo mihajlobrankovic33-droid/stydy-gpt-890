@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 
-const ADMIN_EMAIL = "tvoj-mihajlobrankovic33@gmail.com";
+const ADMIN_EMAIL = "mihajlobrankovic33@gmail.com";
 
 interface HamburgerMenuProps {
   onOpenProfile: () => void;
