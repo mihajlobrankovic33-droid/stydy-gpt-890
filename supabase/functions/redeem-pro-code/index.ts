@@ -59,22 +59,17 @@ serve(async (req) => {
 
     if (codeError) throw codeError;
 
-    if (!proCode) {
+    // Use generic error message to prevent code enumeration attacks
+    // Do not reveal whether the code exists, is used, or used by a different device
+    if (!proCode || (proCode.is_used && proCode.used_by_device_id !== deviceId)) {
       return new Response(
-        JSON.stringify({ error: "Kod ne postoji" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Kod nije validan ili je već iskorišćen" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (proCode.is_used) {
-      // Check if it's used by a different device
-      if (proCode.used_by_device_id !== deviceId) {
-        return new Response(
-          JSON.stringify({ error: "Ovaj kod je već iskorišćen na drugom uređaju" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      // Same device, check if still valid
+    // If code is used by same device and still valid, return success
+    if (proCode.is_used && proCode.used_by_device_id === deviceId) {
       if (proCode.expires_at && new Date(proCode.expires_at) > new Date()) {
         return new Response(
           JSON.stringify({ 
