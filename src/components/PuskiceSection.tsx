@@ -192,14 +192,26 @@ export function PuskiceSection() {
     setIsExtracting(true);
 
     try {
-      // Call AI extraction edge function
+      // Get user's session token for authenticated API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: t.error,
+          description: t.mustBeLoggedIn,
+          variant: "destructive",
+        });
+        setIsExtracting(false);
+        return;
+      }
+
+      // Call AI extraction edge function with user's JWT
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-puskica`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({ imageUrl, subject: subject.trim() }),
         }
