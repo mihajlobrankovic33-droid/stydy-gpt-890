@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProCode {
   id: string;
@@ -19,12 +20,9 @@ interface ProCode {
 interface ProCodesAdminProps {
   isOpen: boolean;
   onClose: () => void;
-  adminPassword: string;
 }
 
-const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pro-codes-admin`;
-
-export function ProCodesAdmin({ isOpen, onClose, adminPassword }: ProCodesAdminProps) {
+export function ProCodesAdmin({ isOpen, onClose }: ProCodesAdminProps) {
   const [codes, setCodes] = useState<ProCode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newCodeInput, setNewCodeInput] = useState("");
@@ -35,14 +33,14 @@ export function ProCodesAdmin({ isOpen, onClose, adminPassword }: ProCodesAdminP
   const fetchCodes = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "list", adminPassword }),
+      const { data, error } = await supabase.functions.invoke('pro-codes-admin', {
+        body: { action: "list" }
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setCodes(data.codes || []);
+      
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      
+      setCodes(data?.codes || []);
     } catch (error) {
       toast({
         title: "Greška",
@@ -62,18 +60,16 @@ export function ProCodesAdmin({ isOpen, onClose, adminPassword }: ProCodesAdminP
 
   const handleCreate = async () => {
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('pro-codes-admin', {
+        body: {
           action: "create",
-          adminPassword,
           code: newCodeInput.trim() || undefined,
           durationDays,
-        }),
+        }
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       
       toast({ title: "Uspešno!", description: `Kod ${data.code.code} je kreiran.` });
       setNewCodeInput("");
@@ -89,13 +85,12 @@ export function ProCodesAdmin({ isOpen, onClose, adminPassword }: ProCodesAdminP
 
   const handleDelete = async (code: string) => {
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", adminPassword, code }),
+      const { data, error } = await supabase.functions.invoke('pro-codes-admin', {
+        body: { action: "delete", code }
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       
       toast({ title: "Obrisano", description: `Kod ${code} je obrisan.` });
       fetchCodes();

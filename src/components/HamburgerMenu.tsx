@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, Globe, Check, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/hooks/useTheme";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
@@ -10,8 +9,6 @@ import { useCustomization, avatarThemes } from "@/context/CustomizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
-
-const ADMIN_PASSWORD = "MIHE26";
 
 interface HamburgerMenuProps {
   onOpenProfile: () => void;
@@ -24,17 +21,14 @@ interface HamburgerMenuProps {
 
 export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory, onClearHistory, customSystemPrompt = "", onCustomSystemPromptChange }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showLanguages, setShowLanguages] = useState(false);
   const [showCharacters, setShowCharacters] = useState(false);
   const [showGptPersonalize, setShowGptPersonalize] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(customSystemPrompt);
-  const [adminPasswordInput, setAdminPasswordInput] = useState("");
-  const [adminError, setAdminError] = useState("");
   const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
   const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
+  const { isPro, isLifetimePro, isAdmin, daysRemaining, signOut } = useSupabaseAuth();
   const { language, setLanguage, t } = useLanguage();
   const { settings, selectTheme } = useCustomization();
   const { toast } = useToast();
@@ -74,7 +68,6 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   };
 
   const handleOpenProModal = () => {
-    // Rebuilt: open modal locally (reliable) and also keep callback available
     setShowProUpgradeModal(true);
     setIsOpen(false);
   };
@@ -108,16 +101,17 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
     onClearHistory();
   };
 
-
-  const handleAdminLogin = () => {
-    if (adminPasswordInput === ADMIN_PASSWORD) {
-      setShowAdminLogin(false);
-      setAdminPasswordInput("");
-      setAdminError("");
+  const handleOpenAdminPanel = () => {
+    // Admin status is already verified server-side
+    if (isAdmin) {
       setIsOpen(false);
       setShowProCodesAdmin(true);
     } else {
-      setAdminError(t.wrongPassword);
+      toast({
+        title: t.error,
+        description: "Nemate admin prava",
+        variant: "destructive",
+      });
     }
   };
 
@@ -375,53 +369,15 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               <span className="text-sm font-medium text-foreground">{t.checkUpdates}</span>
             </button>
 
-            {/* Admin Login */}
-            {!showAdminLogin ? (
+            {/* Admin Panel - Only show for verified admins */}
+            {isAdmin && (
               <button
-                onClick={() => setShowAdminLogin(true)}
+                onClick={handleOpenAdminPanel}
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
               >
-                <Shield className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">{t.admin}</span>
+                <Shield className="w-5 h-5 text-amber-400" />
+                <span className="text-sm font-medium text-foreground">{t.admin}</span>
               </button>
-            ) : (
-              <div className="px-4 py-3 rounded-xl bg-card border border-border space-y-3">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{t.admin}</span>
-                </div>
-                <Input
-                  type="password"
-                  placeholder={t.password}
-                  value={adminPasswordInput}
-                  onChange={(e) => {
-                    setAdminPasswordInput(e.target.value);
-                    setAdminError("");
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleAdminLogin()}
-                  className="text-center"
-                />
-                {adminError && (
-                  <p className="text-xs text-destructive text-center">{adminError}</p>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowAdminLogin(false);
-                      setAdminPasswordInput("");
-                      setAdminError("");
-                    }}
-                    className="flex-1"
-                  >
-                    {t.cancel}
-                  </Button>
-                  <Button size="sm" onClick={handleAdminLogin} className="flex-1">
-                    {t.enter}
-                  </Button>
-                </div>
-              </div>
             )}
 
             {/* Sign Out */}
@@ -433,13 +389,6 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               <span className="text-sm font-medium text-destructive">{t.signOut}</span>
             </button>
           </div>
-
-          {/* Footer */}
-          <div className="px-4 py-4 border-t border-border text-center">
-            <span className="text-[10px] text-muted-foreground">
-              © 2026 BUM Systems | Developed by Mihajlo
-            </span>
-          </div>
         </div>
       )}
 
@@ -447,10 +396,9 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
       <ProCodesAdmin
         isOpen={showProCodesAdmin}
         onClose={() => setShowProCodesAdmin(false)}
-        adminPassword={ADMIN_PASSWORD}
       />
 
-      {/* Pro Upgrade Modal (local, reliable) */}
+      {/* Pro Upgrade Modal (local) */}
       <ProUpgradeModal open={showProUpgradeModal} onOpenChange={setShowProUpgradeModal} />
     </>
   );
