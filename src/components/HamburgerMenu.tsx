@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Menu, X, Sun, Moon, User, LogOut, Crown, RefreshCw, History, Trash2, Shield, Globe, Check, Sparkles, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +10,8 @@ import { useCustomization, avatarThemes } from "@/context/CustomizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { ProCodesAdmin } from "@/components/ProCodesAdmin";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+
+const ADMIN_EMAIL = "tvoj-mihajlobrankovic33@gmail.com";
 
 interface HamburgerMenuProps {
   onOpenProfile: () => void;
@@ -28,10 +31,13 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   const [showProCodesAdmin, setShowProCodesAdmin] = useState(false);
   const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { isPro, isLifetimePro, isAdmin, daysRemaining, signOut } = useSupabaseAuth();
+  const { user, isPro, isLifetimePro, daysRemaining, signOut } = useSupabaseAuth();
   const { language, setLanguage, t } = useLanguage();
   const { settings, selectTheme } = useCustomization();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const isAuthorizedAdmin = user?.email === ADMIN_EMAIL;
 
   const handleCheckForUpdates = async () => {
     setIsOpen(false);
@@ -102,16 +108,9 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
   };
 
   const handleOpenAdminPanel = () => {
-    // Admin status is already verified server-side
-    if (isAdmin) {
+    if (isAuthorizedAdmin) {
       setIsOpen(false);
-      setShowProCodesAdmin(true);
-    } else {
-      toast({
-        title: t.error,
-        description: "Nemate admin prava",
-        variant: "destructive",
-      });
+      navigate("/admin");
     }
   };
 
@@ -369,8 +368,8 @@ export function HamburgerMenu({ onOpenProfile, onOpenProModal, onOpenChatHistory
               <span className="text-sm font-medium text-foreground">{t.checkUpdates}</span>
             </button>
 
-            {/* Admin Panel - Only show for verified admins */}
-            {isAdmin && (
+            {/* Admin Panel - Only show for authorized email */}
+            {isAuthorizedAdmin && (
               <button
                 onClick={handleOpenAdminPanel}
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-card border border-border text-left hover:bg-muted transition-colors"
