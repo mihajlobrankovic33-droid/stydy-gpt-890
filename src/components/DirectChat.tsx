@@ -230,44 +230,62 @@ export function DirectChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Start new conversation
+  // Start new conversation using secure edge function
   const startNewConversation = async () => {
     if (!user || !searchEmail.trim()) return;
 
     setIsSearching(true);
 
     try {
-      // Find user by email
-      const { data: targetProfile } = await supabase
-        .from("profiles")
-        .select("user_id, email, display_name")
-        .eq("email", searchEmail.trim().toLowerCase())
-        .maybeSingle();
-
-      if (!targetProfile) {
-        toast({
-          title: "Korisnik nije pronađen",
-          description: "Nema korisnika sa tom email adresom.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (targetProfile.user_id === user.id) {
+      // Get user's session token for authenticated API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
         toast({
           title: "Greška",
-          description: "Ne možeš slati poruke sebi.",
+          description: "Moraš biti prijavljen.",
           variant: "destructive",
         });
         return;
       }
 
-      // Check if conversation already exists
-      const existing = conversations.find(
-        (c) => c.other_user_id === targetProfile.user_id
+      // Use secure edge function to find user (prevents email enumeration)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/find-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ email: searchEmail.trim().toLowerCase() }),
+        }
       );
-      if (existing) {
-        setSelectedConversation(existing);
+
+      const result = await response.json();
+
+      if (!result.success) {
+        // Generic error message - doesn't reveal if email exists
+        toast({
+          title: "Korisnik nije pronađen",
+          description: "Nije moguće pronaći korisnika. Proveri email adresu.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const targetUser = result.user;
+
+      // Check if conversation already exists
+      if (result.existing_conversation_id) {
+        const existingConv = conversations.find(c => c.id === result.existing_conversation_id);
+        if (existingConv) {
+          setSelectedConversation(existingConv);
+        } else {
+          // Refresh conversations and find it
+          await fetchConversations();
+          const updated = conversations.find(c => c.id === result.existing_conversation_id);
+          if (updated) setSelectedConversation(updated);
+        }
         setShowNewChat(false);
         setSearchEmail("");
         return;
@@ -285,14 +303,14 @@ export function DirectChat() {
       // Add both participants
       await supabase.from("conversation_participants").insert([
         { conversation_id: conv.id, user_id: user.id },
-        { conversation_id: conv.id, user_id: targetProfile.user_id },
+        { conversation_id: conv.id, user_id: targetUser.user_id },
       ]);
 
       const newConv: Conversation = {
         id: conv.id,
-        other_user_id: targetProfile.user_id,
-        other_user_email: targetProfile.email || "Unknown",
-        other_user_name: targetProfile.display_name,
+        other_user_id: targetUser.user_id,
+        other_user_email: searchEmail.trim().toLowerCase(), // Use the email they searched for
+        other_user_name: targetUser.display_name,
         unread_count: 0,
       };
 
@@ -303,7 +321,7 @@ export function DirectChat() {
 
       toast({
         title: "Razgovor kreiran",
-        description: `Možeš sada pisati sa ${targetProfile.email}`,
+        description: `Možeš sada pisati sa ${targetUser.display_name || "korisnikom"}`,
       });
     } catch (error) {
       console.error("Error starting conversation:", error);
