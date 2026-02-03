@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSupabaseAuth } from "@/context/SupabaseAuthContext";
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react";
 
-export const AuthScreen = () => {
+export const AuthScreen = forwardRef<HTMLDivElement>((_, ref) => {
   const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useSupabaseAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -30,7 +30,7 @@ export const AuthScreen = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex items-center justify-center p-4">
+    <div ref={ref} className="fixed inset-0 z-50 bg-background flex items-center justify-center p-4">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
       
@@ -176,4 +176,6 @@ export const AuthScreen = () => {
       </div>
     </div>
   );
-};
+});
+
+AuthScreen.displayName = "AuthScreen";

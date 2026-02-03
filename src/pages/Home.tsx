@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -35,7 +35,10 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-chat`;
 
-const Home = () => {
+// Batch size for streaming updates to prevent UI freezing
+const STREAM_BATCH_SIZE = 10;
+
+const Home = forwardRef<HTMLDivElement>((_, ref) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionType | null>(null);
@@ -51,6 +54,8 @@ const Home = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const streamBufferRef = useRef<string>(""); // Buffer for batching stream updates
+  const streamUpdateTimeoutRef = useRef<number | null>(null);
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, isPro, isLifetimePro, isAdmin, daysRemaining, signOut } = useSupabaseAuth();
   const isOnline = useOfflineStatus();
@@ -111,9 +116,29 @@ const Home = () => {
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading]);
 
-  const streamChat = async (newMessages: Message[], actionType?: ActionType) => {
+  // Optimized streaming with batched updates to prevent UI freezing
+  const streamChat = useCallback(async (newMessages: Message[], actionType?: ActionType) => {
     setIsLoading(true);
     let assistantContent = "";
+    let updateCounter = 0;
+    let pendingUpdate = false;
+
+    // Batched update function - only updates UI every N chunks or on timeout
+    const flushUpdate = () => {
+      if (pendingUpdate) {
+        const currentContent = assistantContent;
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) =>
+              i === prev.length - 1 ? { ...m, content: currentContent } : m
+            );
+          }
+          return [...prev, { role: "assistant", content: currentContent }];
+        });
+        pendingUpdate = false;
+      }
+    };
 
     try {
       // Get the user's session token for authenticated API calls
@@ -144,44 +169,51 @@ const Home = () => {
       const decoder = new TextDecoder();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Set up periodic flush for smooth updates (every 50ms)
+      const flushInterval = setInterval(flushUpdate, 50);
 
-        buffer += decoder.decode(value, { stream: true });
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
+          buffer += decoder.decode(value, { stream: true });
 
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
+          let newlineIndex: number;
+          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+            let line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
+            if (line.endsWith("\r")) line = line.slice(0, -1);
+            if (line.startsWith(":") || line.trim() === "") continue;
+            if (!line.startsWith("data: ")) continue;
 
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, content: assistantContent } : m
-                  );
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") break;
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                pendingUpdate = true;
+                updateCounter++;
+                
+                // Immediate update every STREAM_BATCH_SIZE chunks for responsiveness
+                if (updateCounter % STREAM_BATCH_SIZE === 0) {
+                  flushUpdate();
                 }
-                return [...prev, { role: "assistant", content: assistantContent }];
-              });
+              }
+            } catch {
+              buffer = line + "\n" + buffer;
+              break;
             }
-          } catch {
-            buffer = line + "\n" + buffer;
-            break;
           }
         }
+      } finally {
+        clearInterval(flushInterval);
+        // Final flush to ensure all content is displayed
+        flushUpdate();
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -194,7 +226,7 @@ const Home = () => {
       setIsLoading(false);
       setCurrentAction(null);
     }
-  };
+  }, [customSystemPrompt, toast]);
 
   // Save session to database
   const saveSession = async (msgs: Message[]) => {
@@ -254,12 +286,14 @@ const Home = () => {
     }
   };
 
-  // Save session when messages change (debounced effect)
+  // Save session when messages change (debounced - longer delay to reduce DB calls)
   useEffect(() => {
-    if (messages.length > 0 && !isLoading) {
+    // Only save when not loading and there are messages with at least one assistant response
+    const hasAssistantMessage = messages.some(m => m.role === "assistant");
+    if (messages.length > 0 && !isLoading && hasAssistantMessage) {
       const timeout = setTimeout(() => {
         saveSession(messages);
-      }, 1000);
+      }, 2000); // Increased debounce to 2 seconds for better performance
       return () => clearTimeout(timeout);
     }
   }, [messages, isLoading]);
@@ -457,6 +491,8 @@ const Home = () => {
       </div>
     </div>
   );
-};
+});
+
+Home.displayName = "Home";
 
 export default Home;
